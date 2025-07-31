@@ -1,0 +1,66 @@
+# ------------------------------------------------------------------------------
+# Julia
+# ------------------------------------------------------------------------------
+*.jl.cov
+*.ji
+*.toml.bak
+Manifest.toml
+*.jl~
+
+# VSCode
+.vscode/
+
+# Byte-compiled, intermediate, or cache files
+.julia/
+
+# Pluto notebooks
+*.jlpluto
+
+# ------------------------------------------------------------------------------
+# Outputs & Logs
+# ------------------------------------------------------------------------------
+logs/
+temp/
+output/
+work/
+*.log
+*.tmp
+*.bak
+*.old
+
+# ------------------------------------------------------------------------------
+# Data and Forecast Files
+# ------------------------------------------------------------------------------
+input
+input/forecasts/
+input/wait_times/
+input/fastpass_times/
+input/current_*.csv
+output/forecasts_*.csv
+output/scored_*.csv
+output/model_*.bst
+
+# ------------------------------------------------------------------------------
+# S3 or generated entities
+# ------------------------------------------------------------------------------
+input/dimEntity.csv
+input/dimDate.csv
+input/dim*.csv
+input/events/
+input/holidays/
+input/park_hours/
+
+# ------------------------------------------------------------------------------
+# Jupyter and Python temp files (just in case)
+# ------------------------------------------------------------------------------
+.ipynb_checkpoints
+__pycache__/
+*.pyc
+
+# ------------------------------------------------------------------------------
+# OS & Editor
+# ------------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
