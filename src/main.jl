@@ -59,7 +59,7 @@ include(joinpath(ROOT, "src", "donor", "run_donorParkHours.jl"))
 
 # --- Load in the module that knows how to identify and process each input file type
 if !@isdefined CustomLoaders
-    include(joinpath(ROOT, "src", "modules", "mod_customLoaders.jl"))
+    include(joinpath(ROOT, "src", "modules", "mod_customloaders.jl"))
 end
 using ..CustomLoaders
 # ---

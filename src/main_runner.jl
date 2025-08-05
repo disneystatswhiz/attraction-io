@@ -19,7 +19,7 @@ ROOT = abspath(joinpath(@__DIR__, ".."))
 start_time_pipeline = time_ns()
 
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
-include(joinpath(ROOT, "src", "modules", "mod_customLoaders.jl"))
+include(joinpath(ROOT, "src", "modules", "mod_customloaders.jl"))
 include(joinpath(ROOT, "src", "modules", "mod_encoders.jl"))
 using .CustomLoaders
 using .EncodeFeatures
