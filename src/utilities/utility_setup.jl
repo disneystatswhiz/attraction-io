@@ -10,7 +10,7 @@ const LOC_TEMP   = joinpath(ROOT, "temp")
 
 # Include Structs module once
 if !isdefined(Main, :Structs)
-    include(joinpath(ROOT, "src", "utilities", "Structs.jl"))
+    include(joinpath(ROOT, "src", "utilities", "structs.jl"))
 end
 
 # Make selected structs globally available
