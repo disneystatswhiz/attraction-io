@@ -14,7 +14,7 @@ start_time_pipeline = time_ns()
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
 
 const POLL_INTERVAL = Minute(10)
-const CUT_OFF_TIME  = Time(7, 0)
+const CUT_OFF_TIME  = Time(23, 59)
 const BUCKET        = "touringplans_stats"
 today_date          = today()
 
