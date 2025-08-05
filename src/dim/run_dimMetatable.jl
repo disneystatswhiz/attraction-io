@@ -3,7 +3,7 @@
 # -------------------------------------------------------
 
 s3path = "s3://touringplans_stats/export/metatable/current_metatable.csv"
-locpath = "input/metatable/current_metatable.csv"
+locpath = joinpath(LOC_INPUT, "metatable", "current_metatable.csv")
 
 # Ensure the local directory exists
 mkpath(dirname(locpath))

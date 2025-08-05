@@ -8,8 +8,8 @@ using Dates, CSV, DataFrames
 sync_event_files()
 
 # -- Load files
-event_days_path = "input/events/current_event_days.csv"
-events_path     = "input/events/current_events.csv"
+event_days_path = joinpath(LOC_INPUT, "events", "current_event_days.csv")
+events_path     = joinpath(LOC_INPUT, "events", "current_events.csv")
 
 event_days_df = CSV.read(event_days_path, DataFrame; missingstring="")
 events_df     = CSV.read(events_path, DataFrame; missingstring="")
@@ -53,4 +53,4 @@ df_struct = DataFrame(
     property    = [e.event.property for e in event_day_structs]
 )
 
-CSV.write("work/dim/dimevents.csv", df_struct)
+CSV.write(joinpath(LOC_DIM, "dimevents.csv"), df_struct)

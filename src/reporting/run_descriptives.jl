@@ -7,7 +7,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
     upper_code = uppercase(attraction_code)
     suffix = lowercase(wait_time_type)
 
-    path = "output/wait_times_$(upper_code)_$(suffix).csv"
+    path = joinpath(LOC_OUTPUT, uppercase(upper_code), "wait_times_$(upper_code)_$(suffix).csv")
     if !isfile(path)
         # @warn "Skipping $path — file not found."
         return nothing
@@ -19,15 +19,24 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
 
     # --- Basic summary stats ---
     function mode_skipmissing(v)
+        # Remove missings
         v_clean = collect(skipmissing(v))
         isempty(v_clean) && return missing
+
+        # Count frequencies
         counts = Dict{eltype(v_clean), Int}()
         for x in v_clean
             counts[x] = get(counts, x, 0) + 1
         end
+
+        # Find the maximum count
         max_count = maximum(values(counts))
-        modes = [k for (k, v) in counts if v == max_count]
-        return length(modes) == 1 ? modes[1] : modes
+
+        # All values that hit that count
+        modes = [k for (k, cnt) in counts if cnt == max_count]
+
+        # Return the highest mode
+        return maximum(modes)
     end
 
     overall_stats = DataFrame(
@@ -85,7 +94,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
         "hour_midnight", "hour_1am", "hour_2am", "hour_3am", "hour_4am", "hour_5am"
     ]
 
-    hour_stats = DataFrame((label => get(hour_dict, label, missing) for label in ordered_labels)...)
+    hour_stats = DataFrame([NamedTuple{Tuple(Symbol.(ordered_labels))}(Tuple(get(hour_dict, label, missing) for label in ordered_labels))])
 
     # Final combine
     overall_stats = hcat(overall_stats, hour_stats)
@@ -93,8 +102,8 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
 
     # Write output (append only)
     out_name   = "descriptive_summary_$(upper_code)_$(suffix).csv"
-    local_path = "work/$(upper_code)/already_on_s3/$(out_name)"
-    out_path   = "output/$(out_name)"
+    local_path = joinpath(LOC_WORK, uppercase(upper_code), "already_on_s3", out_name)
+    out_path   = joinpath(LOC_OUTPUT, uppercase(upper_code), out_name)
     s3_path    = "s3://touringplans_stats/stats_work/attraction-io/reporting/$(out_name)"
 
     CSV.write(local_path, overall_stats; append=isfile(local_path))
@@ -107,7 +116,15 @@ end
 # ----------------------------
 # Loop through all wait time types for this attraction
 # ----------------------------
-wait_time_types   = ATTRACTION.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
+wait_time_types = ATTRACTION.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
+
 for wait_type in wait_time_types
-    process_descriptives(ATTRACTION.code, lowercase(wait_type))
+    wt_lower = lowercase(wait_type)
+    model_path = joinpath(LOC_WORK, ATTRACTION.code, "wait_times", "model_$(wt_lower).bst")
+
+    if isfile(model_path)
+        process_descriptives(ATTRACTION.code, wt_lower)
+    else
+        # @info "⏭️ Skipping descriptives for $(ATTRACTION.code) [$wt_lower] — model not found at $model_path"
+    end
 end

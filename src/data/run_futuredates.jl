@@ -48,10 +48,10 @@ function generate_future_forecast_times(attraction::Attraction)::DataFrame
 end
 
 function main(attraction::Attraction)
-    input_folder = "work/$(attraction.code)/wait_times"
+    input_folder = joinpath(LOC_WORK, uppercase(attraction.code), "wait_times")
     input_file = joinpath(input_folder, "wait_times.csv")
     output_file = joinpath(input_folder, "future.csv")
-    wait_time_types = attraction.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
+    wait_time_types = attraction.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 
     if !isfile(input_file)
         # @info("❌ Now new rows for $input_file")
@@ -75,6 +75,9 @@ function main(attraction::Attraction)
     ]...)
 
     # Combine + dedupe
+    common_cols = intersect(names(df_existing), names(future_rows))
+    df_existing = select(df_existing, common_cols)
+    future_rows = select(future_rows, common_cols)
     df_all = vcat(df_existing, future_rows)
     df_all = unique(df_all, [:entity_code, :observed_at, :wait_time_type])
     sort!(df_all, :observed_at)

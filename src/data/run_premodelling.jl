@@ -6,10 +6,10 @@ using Dates, CSV, DataFrames
 
 function main()
     entity_code       = ATTRACTION.code
-    wait_time_types   = ATTRACTION.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
+    wait_time_types   = ATTRACTION.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 
     # Load the feature-enriched DataFrame
-    pre_model_path = "work/$(entity_code)/wait_times/features.csv"
+    pre_model_path = joinpath(LOC_WORK, entity_code, "wait_times", "features.csv")
 
     if !isfile(pre_model_path)
         # No new data
@@ -35,8 +35,8 @@ function main()
         file_basename = "wait_times_$(entity_code)_$(wt_lower).csv"
 
         # Paths
-        input_path  = "work/$entity_code/already_on_s3/$file_basename"
-        output_path = "output/$file_basename"
+        input_path  = joinpath(LOC_WORK, entity_code, "already_on_s3", file_basename)
+        output_path = joinpath(LOC_OUTPUT, entity_code, file_basename)
         mkpath(dirname(output_path))
 
         # Skip if no new data to append and existing file already exists
@@ -48,11 +48,14 @@ function main()
         # If existing input file found, append and dedup
         if isfile(input_path)
             df_existing = CSV.read(input_path, DataFrame)
+            df_existing.meta_observed_at = parse_zoneddatetimes_simple(df_existing.meta_observed_at)
+
             df_combined = vcat(df_existing, df_new; cols = :union)
             df_final = unique(df_combined)
         else
             df_final = df_new
         end
+
 
         # ---------------------------------------------------
         # Reorder columns: id_* → meta_* → target → pred_* → wgt_* → others
@@ -75,6 +78,11 @@ function main()
 
         # Sort the rows by descending meta_observed_at column
         df_final = sort(df_final, :meta_observed_at, rev=true)
+
+        # If target is a non-empty number, filter out extreme values (less than -100 or greater than 1000)
+        if !isempty(target_col) && eltype(df_final[!, target_col[1]]) <: Number
+            df_final = filter(row -> row.target >= -100 && row.target <= 1000, df_final)
+        end
 
         # Save to output and upload
         CSV.write(output_path, df_final)

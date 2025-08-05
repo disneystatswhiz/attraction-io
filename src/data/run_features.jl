@@ -7,7 +7,7 @@ using Dates, CSV, DataFrames
 function main()
     # Load key paths
     entity_code = ATTRACTION.code
-    local_input_folder = "work/$(entity_code)/wait_times"
+    local_input_folder = joinpath(LOC_WORK, entity_code, "wait_times")
 
     # Construct input and output paths
     wait_time_filename = "future.csv"

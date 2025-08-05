@@ -22,10 +22,10 @@ function sync_wait_times(entity_id::String, property::String, type::String)
 
     if type == "standby"
         s3path = "$s3_base/wait_times/$property/"
-        localpath = "input/wait_times/$property/"
+        localpath = joinpath(LOC_INPUT, "wait_times", property)
     elseif type == "priority"
         s3path = "$s3_base/fastpass_times/$property/"
-        localpath = "input/wait_times/priority/$property/"
+        localpath = joinpath(LOC_INPUT, "wait_times", "priority", property)
     else
         error("❌ Unsupported type: $type. Use 'standby' or 'priority'.")
     end
@@ -45,7 +45,7 @@ end
 # -------------------------------------------------------
 function sync_entity_files()
     s3path    = "s3://touringplans_stats/export/entities"
-    localpath = "input/entities"
+    localpath = joinpath(LOC_INPUT, "entities")
 
     mkpath(localpath)
     sync_from_s3_folder(s3path, localpath)
@@ -58,7 +58,7 @@ end
 function sync_calendar_forecasts(entity_id::String)
     filename     = "forecasts_$(uppercase(entity_id))_calendar.csv"
     s3_path      = "s3://touringplans_stats/stats_work/attraction-io/forecasts/$filename"
-    local_folder = "work/$(ATTRACTION.code)/already_on_s3"
+    local_folder = joinpath(LOC_WORK, uppercase(entity_id), "already_on_s3")
     local_file   = joinpath(local_folder, filename)
 
     mkpath(local_folder)
@@ -80,7 +80,7 @@ end
 function sync_parkhours_files()
 
     s3path     = "s3://touringplans_stats/export/park_hours"
-    localpath  = "input/parkhours"
+    localpath  = joinpath(LOC_INPUT, "parkhours")
 
     mkpath(localpath)
 
@@ -95,14 +95,14 @@ function sync_event_files()
 
     filename   = "current_event_days.csv"
     s3file     = "s3://touringplans_stats/export/events/$filename"
-    localpath  = "input/events"
+    localpath  = joinpath(LOC_INPUT, "events")
     localfile  = joinpath(localpath, filename)
     mkpath(localpath)
     download_file_from_s3(s3file, localfile)
 
     filename   = "current_events.csv"
     s3file     = "s3://touringplans_stats/export/events/$filename"
-    localpath  = "input/events"
+    localpath  = joinpath(LOC_INPUT, "events")
     localfile  = joinpath(localpath, filename)
     mkpath(localpath)
     download_file_from_s3(s3file, localfile)

@@ -3,7 +3,8 @@
 # corresponding attraction struct for processing                     #
 # ------------------------------------------------------------------ #
 
-entities_df = CSV.read("work/dim/dimentity.csv", DataFrame)
+dim_path = joinpath(LOC_DIM, "dimentity.csv")
+entities_df = CSV.read(dim_path, DataFrame)
 attraction_row = entities_df[entities_df.code .== uppercase(ENTITY_CODE), :]
 if nrow(attraction_row) == 0
     error("❌ Attraction not found: $ENTITY_CODE")

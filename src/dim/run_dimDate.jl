@@ -60,7 +60,7 @@ using CSV, DataFrames, Dates, Logging
 
 function save_dimdate()
 
-    input_folder = "work/dim"
+    input_folder = LOC_DIM
     target_path = joinpath(input_folder, "dimdate.csv")
 
     if isfile(target_path)

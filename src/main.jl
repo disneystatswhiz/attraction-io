@@ -2,16 +2,21 @@
 # ---------------------- Parse Command-Line Arguments --------------------------------- #
 # ===================================================================================== #
 
-if length(ARGS) < 4
-    error("❌ Usage: julia main.jl <ENTITY_CODE> <PARK> <PROPERTY> <QUEUE_TYPE>")
+if length(ARGS) >= 4
+    const ENTITY_CODE = lowercase(ARGS[1])
+    const PARK        = lowercase(ARGS[2])
+    const PROPERTY    = lowercase(ARGS[3])
+    const QUEUE_TYPE  = lowercase(ARGS[4])
+else
+    # @info "No ARGS passed. Falling back to hardcoded values (VS Code mode)."
+    const ENTITY_CODE = "ia16"
+    const PARK        = "ia"
+    const PROPERTY    = "uor"
+    const QUEUE_TYPE  = "standby"
 end
 
-const ENTITY_CODE = lowercase(ARGS[1])
-const PARK        = lowercase(ARGS[2])
-const PROPERTY    = lowercase(ARGS[3])
-const QUEUE_TYPE  = lowercase(ARGS[4])
-
 println("🔧 Running with: ENTITY=$ENTITY_CODE | PARK=$PARK | PROPERTY=$PROPERTY | TYPE=$QUEUE_TYPE")
+
 # ===================================================================================== #
 
 # --- Start timer
@@ -99,12 +104,11 @@ include(joinpath(ROOT, "src", "calendar", "run_assign_levels.jl"))
 
 include(joinpath(ROOT, "src", "data", "run_sync.jl")) # Refresh the data from S3 before running reporting
 include(joinpath(ROOT, "src", "reporting", "run_descriptives.jl"))
-include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
+#include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
 
 # --- Lap time for calendar calculations
 elapsed_modelling = (time_ns() - start_time_pipeline) / 1e9
 log_header("✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes.")
 
 # -------------------- Cleanup and Finalization ----------------------------------- #
-cleanup_folders("output")
-cleanup_folders("work/$(uppercase(ATTRACTION.code))")
+cleanup_folders(ATTRACTION.code, base_dir=ROOT)

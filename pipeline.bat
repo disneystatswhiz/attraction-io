@@ -1,61 +1,10 @@
 @echo off
+title 🧩 Master Pipeline Launcher (Git Bash)
 
-:: Run AK07 (WDW)
-set ENTITY=ak07
-set PARK=ak
-set PROPERTY=wdw
-set TYPE=standby
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-timeout /t 60 >nul
+REM --- Full paths for Git Bash and Julia ---
+set "GITBASH=C:\Program Files\Git\git-bash.exe"
+set "WORKDIR=/d/GitHub/attraction-io"
+set "JULIA=/c/Users/fred/AppData/Local/Programs/Julia-1.10.0/bin/julia.exe"
 
-:: Run HS103 (WDW)
-set ENTITY=hs103
-set PARK=hs
-set PROPERTY=wdw
-set TYPE=standby
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-timeout /t 60 >nul
-
-:: Run MK01 (WDW)
-set ENTITY=mk01
-set PARK=mk
-set PROPERTY=wdw
-set TYPE=standby
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-timeout /t 60 >nul
-
-:: Run DL01 (DLR)
-set ENTITY=dl01
-set PARK=dl
-set PROPERTY=dlr
-set TYPE=standby
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-
-:: Run AK85 (WDW)
-set ENTITY=ak85
-set PARK=ak
-set PROPERTY=wdw
-set TYPE=standby
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-
-:: Run AK86 (WDW)
-set ENTITY=ak86
-set PARK=ak
-set PROPERTY=wdw
-set TYPE=standby
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-
-:: Run CA10 (DLR)
-set ENTITY=ca10
-set PARK=ca
-set PROPERTY=dlr
-set TYPE=priority
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-
-:: Run AK06 (WDW)
-set ENTITY=ak06
-set PARK=ak
-set PROPERTY=wdw
-set TYPE=priority
-start "" /b cmd /c "julia src/main.jl %ENTITY% %PARK% %PROPERTY% %TYPE%"
-
+REM --- Launch Git Bash explicitly using start ---
+start "" "%GITBASH%" -c "cd %WORKDIR% && %JULIA% scheduler/run_jobs_polling.jl"

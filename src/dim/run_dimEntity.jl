@@ -26,4 +26,4 @@ for file in entity_files
 end
 
 # --- Write master dimEntity table ---
-CSV.write("work/dim/dimentity.csv", df_all_entities)
+CSV.write(joinpath(LOC_DIM, "dimentity.csv"), df_all_entities)

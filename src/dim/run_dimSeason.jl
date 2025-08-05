@@ -5,13 +5,13 @@
 function main()
 
     # --- Skip if already exists
-    season_path = "work/dim/dimseason.csv"
+    season_path = joinpath(LOC_DIM, "dimseason.csv")
     if isfile(season_path)
         return
     end
 
     # --- Load Inputs
-    path_dategroupid = "work/dim/dimdategroupid.csv"
+    path_dategroupid = joinpath(LOC_DIM, "dimdategroupid.csv")
     df = CSV.read(path_dategroupid, DataFrame)
 
     # --- Prep

@@ -9,7 +9,7 @@ using JSON3, Dates, DataFrames, CSV, TimeZones
 sync_parkhours_files()
 
 # --- Construct full file path ---
-parkhours_folder = joinpath("input", "parkhours")
+parkhours_folder = joinpath(LOC_INPUT, "parkhours")
 
 # --- Check file exists ---
 if !isdir(parkhours_folder)
@@ -26,6 +26,7 @@ end
 dfs = DataFrame[]
 
 for file in csv_files
+    # @info "🔧 Reading park hours from $file"
     df = redirect_stderr(devnull) do
         CSV.read(file, DataFrame)
     end
@@ -62,7 +63,7 @@ df_parkhours.hours_open = [ismissing(open) || ismissing(close) ? missing :
     for (open, close) in zip(df_parkhours.opening_time, df_parkhours.closing_time)]
 
 # Save as dim_parkhours.csv
-dim_parkhours_file = joinpath("work", "dim", "dimparkhours.csv")
+dim_parkhours_file = joinpath("work", "_dim", "dimparkhours.csv")
 CSV.write(dim_parkhours_file, df_parkhours)
 
 # --- end of run_dimParkHours.jl ---

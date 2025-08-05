@@ -23,7 +23,7 @@ function get_latest_encoded_date(attraction::Attraction)::Date
     latest_dates = Date[]
 
     for wt in getproperty(attraction, Val(:wait_time_types))
-        local_file = "work/$(ATTRACTION.code)/already_on_s3/wait_times_$(uppercase(ATTRACTION.code))_$(lowercase(wt)).csv"
+        local_file = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3", "wait_times_$(uppercase(ATTRACTION.code))_$(lowercase(wt)).csv")
         isfile(local_file) && push!(latest_dates, get_file_date(local_file))
     end
 
@@ -36,8 +36,8 @@ end
 function get_local_sync_folder(attraction::Attraction)::String
     
     return attraction.queue_type == "priority" ?
-        "input/wait_times/priority/$(attraction.property)" :
-        "input/wait_times/$(attraction.property)"
+        joinpath(LOC_INPUT, "wait_times", "priority", attraction.property) :
+        joinpath(LOC_INPUT, "wait_times", attraction.property)
 end
 
 # -----------------------------------------------------------

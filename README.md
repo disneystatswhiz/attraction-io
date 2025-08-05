@@ -37,7 +37,7 @@ This project supports a modular pipeline to:
 │           └── scored_<entity_code>.csv
 ├── input/
 │   └── forecasts/
-├── output/
+├── output/$(uppercase(ATTRACTION.code))/
 │   └── forecasts_<entity_code>.csv
 ├── README.md
 ```
@@ -53,7 +53,7 @@ include("src/modelling/run_encodefeatures.jl")
 df_encoded = main(attraction::Attraction)
 ```
 
-- Reads wait time files from `output/`
+- Reads wait time files from `output/$(uppercase(ATTRACTION.code))/`
 - Applies feature encoding
 - Writes encoded files to `work/<entity_code>/wait_times/`
 
@@ -76,7 +76,7 @@ main(attraction::Attraction)
 ```
 
 - Appends new scored predictions to existing forecast logs
-- Saves result in `output/forecasts_<entity_code>.csv`
+- Saves result in `output/$(uppercase(ATTRACTION.code))/forecasts_<entity_code>.csv`
 - Uploads to S3: `s3://touringplans_stats/stats_work/attraction/io/forecasts`
 
 ---

@@ -49,7 +49,7 @@ end
 # Main logic
 # -------------------------------------------------------
 function main()
-    temp = "work/$(uppercase(ATTRACTION.code))/calendar"
+    temp = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "calendar")
     input_path = joinpath(temp, "forecasts_dailyavgs.csv")
     output_path = joinpath(temp, "forecasts_thresholds.csv")
 

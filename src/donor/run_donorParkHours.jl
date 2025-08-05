@@ -67,23 +67,23 @@ end
 
 function main()
 
-    output_folder = "work/donor"
+    output_folder = LOC_DONOR
     if !isdir(output_folder)
         mkdir(output_folder)
     end
-    output_file = "work/donor/donorparkhours.csv"
-    
+    output_file = joinpath(LOC_DONOR, "donorparkhours.csv")
+
     # If the output file already exists, skip processing
     # TODO: Remove this check if you want to always regenerate
     if isfile(output_file)
-        return
+       return
     else 
-        # @info("Creating a donor park hours table...")
+       # @info("Creating a donor park hours table...")
     end
 
-    dimdate    = CSV.read("work/dim/dimdate.csv", DataFrame)
-    park_hours = CSV.read("work/dim/dimparkhours.csv", DataFrame)
-    dgid       = CSV.read("work/dim/dimdategroupid.csv", DataFrame)
+    dimdate    = CSV.read(joinpath(LOC_DIM, "dimdate.csv"), DataFrame)
+    park_hours = CSV.read(joinpath(LOC_DIM, "dimparkhours.csv"), DataFrame)
+    dgid       = CSV.read(joinpath(LOC_DIM, "dimdategroupid.csv"), DataFrame)
 
     # Parse ISO8601 datetime columns
     for col in [:opening_time, :closing_time, :opening_time_with_emh, :closing_time_with_emh_or_party]

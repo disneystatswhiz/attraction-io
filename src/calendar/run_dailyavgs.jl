@@ -12,7 +12,7 @@ const END_HOUR = 17
 # -------------------------------------------------------
 function compute_daily_averages(outpath::String)
 
-    forecast_path = "output/forecasts_$(uppercase(ATTRACTION.code))_posted.csv"
+    forecast_path = joinpath(LOC_OUTPUT, uppercase(ATTRACTION.code), "forecasts_$(uppercase(ATTRACTION.code))_posted.csv")
     output_path = outpath
     mkpath(dirname(output_path))
 
@@ -63,5 +63,5 @@ function main(outpath::String)
     compute_daily_averages(outpath)
 end
 
-outpath = "work/$(uppercase(ATTRACTION.code))/calendar/forecasts_dailyavgs.csv"
+outpath = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "calendar", "forecasts_dailyavgs.csv")
 main(outpath)

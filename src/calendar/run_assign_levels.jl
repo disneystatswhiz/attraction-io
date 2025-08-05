@@ -27,7 +27,7 @@ end
 # Step 2: Main logic
 # -------------------------------------------------------
 function main()
-    temp = "work/$(uppercase(ATTRACTION.code))/calendar"
+    temp = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "calendar")
     input_avgs = joinpath(temp, "forecasts_dailyavgs.csv")
     input_thresh = joinpath(temp, "forecasts_thresholds.csv")
     output_path = joinpath(temp, "forecasts_dailyavgs_w_levels.csv")
@@ -79,8 +79,8 @@ function main()
     # Upload to S3
     upload_file_to_s3(synced.local_file, "s3://touringplans_stats/stats_work/attraction-io/forecasts/$(basename(synced.local_file))")
 
-    # Save final version to output/
-    final_output_path = "output/forecasts_$(uppercase(ATTRACTION.code))_calendar.csv"
+    # Save final version to output/$(uppercase(ATTRACTION.code))/
+    final_output_path = joinpath(LOC_OUTPUT, uppercase(ATTRACTION.code), "forecasts_$(uppercase(ATTRACTION.code))_calendar.csv")
     mkpath(dirname(final_output_path))
     mv(synced.local_file, final_output_path; force=true)
 

@@ -10,7 +10,7 @@ function run_wait_time_ingestion(
     queue_type::String
 )
 
-    output_folder = "work/$entity_code/wait_times"
+    output_folder = joinpath(LOC_WORK, entity_code, "wait_times")
     mkpath(output_folder)
     output_path = joinpath(output_folder, "wait_times.csv")
 

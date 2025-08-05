@@ -4,13 +4,13 @@
 
 # --- Main Function ---
 function main()
-    output_file = "work/dim/dimdategroupid.csv"
+    output_file = joinpath(LOC_DIM, "dimdategroupid.csv")
     if isfile(output_file)
         return
     end
 
-    df_date = CSV.read("work/dim/dimdate.csv", DataFrame)
-    df_holiday = CSV.read("work/dim/dimholidays.csv", DataFrame)
+    df_date = CSV.read(joinpath(LOC_DIM, "dimdate.csv"), DataFrame)
+    df_holiday = CSV.read(joinpath(LOC_DIM, "dimholidays.csv"), DataFrame)
 
     select_date = select(df_date, [:park_day_id, :year, :month, :day, :day_of_week, :day_of_week_ddd, :week_of_year, :month_mmm])
     df = innerjoin(select_date, df_holiday, on = :park_day_id)

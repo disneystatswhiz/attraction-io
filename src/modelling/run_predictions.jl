@@ -3,6 +3,7 @@
 # -------------------------------------------------------------------- #
 
 using Dates, CSV, DataFrames
+const POSTED_ACTUAL_RATIO = 0.78
 
 # Round wait times based on wait time type, with floor at 0
 function round_wait_time(value, wait_time_type::String)
@@ -23,77 +24,102 @@ function round_wait_time(value, wait_time_type::String)
     return max(0, rounded)
 end
 
-function run_entity_forecast_logger(attraction::Attraction)
-    entity_code = attraction.code
-    wait_time_types = attraction.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
-    model_name = "XGBoost"
-    today_str = string(Dates.today())
+function get_forecast_df(entity_code::String)::Dict{String, Union{DataFrame, Nothing}}
+    temp_folder = joinpath(LOC_WORK, entity_code, "wait_times")
+    result = Dict{String, Union{DataFrame, Nothing}}(
+        "POSTED" => nothing, 
+        "ACTUAL" => nothing, 
+        "PRIORITY" => nothing
+    )
 
-    for wt_type in wait_time_types
-        wt_lower = lowercase(wt_type)
-        base_filename = "forecasts_$(entity_code)_$(wt_lower).csv"
-
-        # --- Paths ---
-        download_path = joinpath("input", "forecasts")
-        scored_path   = joinpath("work", entity_code, "wait_times", "scored_$(wt_lower).csv")
-        output_path   = joinpath("output", base_filename)
-        local_synced  = joinpath(download_path, base_filename)
-
-        # --- Ensure input/forecasts folder exists ---
-        isdir(download_path) || mkpath(download_path)
-
-        # ----------------------------------------------------
-        # Step 1. Download existing forecast file from S3
-        # ----------------------------------------------------
-        
-        try
-            sync_from_s3("s3://touringplans_stats/stats_work/attraction-io/forecasts", local_synced)
-        catch e
-        end
-
-        # Load old forecasts if they exist
-        df_existing = isfile(local_synced) ? CSV.read(local_synced, DataFrame) : DataFrame()
-
-        # ----------------------------------------------------
-        # Step 2. Load newly scored forecasts
-        # ----------------------------------------------------
-        if isfile(scored_path)
-            df_new = CSV.read(scored_path, DataFrame)
-            df_new.meta_observed_at = parse_zoneddatetimes_simple(df_new.meta_observed_at)
-
-            # Round and annotate
-            df_new.predicted_wait_time = round_wait_time.(df_new.predicted_wait_time, wt_lower)
-            df_new.model_name = fill(model_name, nrow(df_new))
-            df_new.model_run_date = fill(today_str, nrow(df_new))
-
-            # Combine and dedupe
-            df_combined = vcat(df_existing, df_new; cols = :union)
-            df_combined.model_run_date = Date.(df_combined.model_run_date)
-            sort!(df_combined, [:meta_observed_at, :model_run_date], rev = [false, true])
-            df_combined = unique(df_combined, [:meta_observed_at])
-            sort!(df_combined, "meta_observed_at", rev = true)
-
-            # Save and send
-            CSV.write(output_path, df_combined)
-                    upload_file_to_s3(output_path, "s3://touringplans_stats/stats_work/attraction-io/forecasts/$(base_filename)")
+    for wt in ["POSTED", "ACTUAL", "PRIORITY"]
+        path = joinpath(temp_folder, "scored_$(lowercase(wt)).csv")
+        if isfile(path)
+            df = CSV.read(path, DataFrame)
+            df.meta_observed_at = parse_zoneddatetimes_simple(df.meta_observed_at)
+            df.predicted_wait_time = round_wait_time.(df.predicted_wait_time, lowercase(wt))
+            df.meta_wait_time_type = fill(wt, nrow(df))
+            result[wt] = df
         end
     end
 
+    # Impute ACTUAL if missing, using POSTED (classic logic)
+    if result["ACTUAL"] === nothing && result["POSTED"] !== nothing
+        df_posted = deepcopy(result["POSTED"])
+        df_posted.predicted_wait_time .= round_wait_time.(df_posted.predicted_wait_time .* POSTED_ACTUAL_RATIO, "actual")
+        df_posted.meta_wait_time_type .= "ACTUAL"
+        result["ACTUAL"] = df_posted
+    end
+
+    # Impute POSTED if missing, using ACTUAL (classic logic)
+    if result["POSTED"] === nothing && result["ACTUAL"] !== nothing
+        df_actual = deepcopy(result["ACTUAL"])
+        df_actual.predicted_wait_time .= round_wait_time.(df_actual.predicted_wait_time ./ POSTED_ACTUAL_RATIO, "posted")
+        df_actual.meta_wait_time_type .= "POSTED"
+        result["POSTED"] = df_actual
+    end
+
+    return result
 end
+
+function run_entity_forecast_logger(attraction::Attraction)
+    entity_code = attraction.code
+    model_name = "XGBoost"
+    today_str = string(Dates.today())
+
+    forecast_dict = get_forecast_df(entity_code)
+
+    # If all forecast types are missing, skip this entity
+    if all(x -> x === nothing, values(forecast_dict))
+        @warn "⏭️ Skipping $entity_code — no forecasts available or imputed."
+        return
+    end
+
+    for wt_type in keys(forecast_dict)
+        df_new = forecast_dict[wt_type]
+        isnothing(df_new) && continue  # No new forecasts of this type
+
+        wt_lower = lowercase(wt_type)
+        base_filename = "forecasts_$(entity_code)_$(wt_lower).csv"
+        already_on_s3_file = joinpath(LOC_WORK, entity_code, "already_on_s3", "forecasts_$(wt_lower).csv")
+        output_path = joinpath(LOC_OUTPUT, entity_code, base_filename)
+
+        # Load existing forecasts from already_on_s3 (just synced earlier in pipeline)
+        df_existing = isfile(already_on_s3_file) ? CSV.read(already_on_s3_file, DataFrame) : DataFrame()
+        if !isempty(df_existing)
+            df_existing.meta_observed_at = parse_zoneddatetimes_simple(df_existing.meta_observed_at)
+        end
+
+        # Annotate new rows
+        df_new.model_name = fill(model_name, nrow(df_new))
+        df_new.model_run_date = fill(today_str, nrow(df_new))
+
+        # Combine and dedupe: keep the most recent model_run_date for each meta_observed_at
+        df_combined = vcat(df_existing, df_new; cols = :union)
+        df_combined.model_run_date = Date.(df_combined.model_run_date)
+        sort!(df_combined, [:meta_observed_at, :model_run_date], rev = [false, true])
+        df_combined = unique(df_combined, [:meta_observed_at])
+        sort!(df_combined, "meta_observed_at", rev = true)
+
+        # Write combined file and upload to S3
+        CSV.write(output_path, df_combined)
+        upload_file_to_s3(output_path, "s3://touringplans_stats/stats_work/attraction-io/forecasts/$(base_filename)")
+    end
+end
+
 
 function main(attraction::Attraction)
     entity_code = attraction.code
-    wait_time_types = attraction.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
+    wait_time_types = attraction.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 
     # Ensure at least one file exists
     any_file_exists = any(wait_time_type -> begin
         wt_lower = lowercase(wait_time_type)
-        local_file_path = "output/wait_times_$(entity_code)_$(wt_lower).csv"
+        local_file_path = joinpath(LOC_WORK, entity_code, "wait_times", "scored_$(wt_lower).csv")
         isfile(local_file_path)
     end, wait_time_types)
 
     if !any_file_exists
-        # @info("No wait time files found for $entity_code. Cannot proceed with predictions.")
         return nothing
     end
 
@@ -101,7 +127,7 @@ function main(attraction::Attraction)
     for wt_type in wait_time_types
         wt_lower = lowercase(wt_type)
         base_filename = "forecasts_$(entity_code)_$(wt_lower).csv"
-        output_path = joinpath("output", base_filename)
+        output_path = joinpath(LOC_OUTPUT, entity_code, base_filename)
         if !isfile(output_path)
             already_logged = false
             break
@@ -114,5 +140,6 @@ function main(attraction::Attraction)
 
     run_entity_forecast_logger(attraction)
 end
+
 
 main(ATTRACTION)

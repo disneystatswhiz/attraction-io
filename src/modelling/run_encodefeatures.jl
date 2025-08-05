@@ -9,14 +9,14 @@ using Dates, CSV, DataFrames
 # -------------------------------------------------------
 function read_wait_time_data(attraction::Attraction)
     entity_code = attraction.code
-    wait_time_types = attraction.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
-    input_folder = "output"
+    wait_time_types = attraction.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
+    input_folder = joinpath(LOC_OUTPUT, uppercase(entity_code))
 
     combined_df = DataFrame()
 
     for wait_time_type in wait_time_types
         wt_lower = lowercase(wait_time_type)
-        file_path = joinpath(input_folder, "wait_times_$(entity_code)_$(wt_lower).csv")
+        file_path = joinpath(input_folder, "wait_times_$(uppercase(entity_code))_$(wt_lower).csv")
 
         if isfile(file_path)
             df_wt = CSV.read(file_path, DataFrame)
@@ -45,7 +45,7 @@ function encode_and_save(df::DataFrame, attraction::Attraction)
     for wt_type in unique(df_encoded.meta_wait_time_type)
         wt_lower = lowercase(wt_type)
         df_wt = df_encoded[df_encoded.meta_wait_time_type .== wt_type, :]
-        output_path = "work/$(entity_code)/wait_times/to_be_modelled_$(wt_lower).csv"
+        output_path = joinpath(LOC_WORK, entity_code, "wait_times", "to_be_modelled_$(wt_lower).csv")
         CSV.write(output_path, df_wt)
         # @info("📤 Encoded data written for $wt_type to $output_path")
     end
@@ -58,12 +58,12 @@ end
 # -------------------------------------------------------
 function main(attraction::Attraction)
     entity_code = attraction.code
-    wait_time_types = attraction.queue_type == "priority" ? ["priority"] : ["POSTED", "ACTUAL"]
+    wait_time_types = attraction.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 
     # Skip if all to_be_modelled files already exist
     all_exist = all(wait_time_type -> begin
         wt_lower = lowercase(wait_time_type)
-        local_file_path = "work/$(entity_code)/wait_times/to_be_modelled_$(wt_lower).csv"
+        local_file_path = joinpath(LOC_WORK, entity_code, "wait_times", "to_be_modelled_$(wt_lower).csv")
         isfile(local_file_path)
     end, wait_time_types)
 
@@ -75,7 +75,7 @@ function main(attraction::Attraction)
     # Ensure at least one file exists
     any_file_exists = any(wait_time_type -> begin
         wt_lower = lowercase(wait_time_type)
-        local_file_path = "output/wait_times_$(entity_code)_$(wt_lower).csv"
+        local_file_path = joinpath(LOC_OUTPUT, uppercase(entity_code), "wait_times_$(uppercase(entity_code))_$(wt_lower).csv")
         isfile(local_file_path)
     end, wait_time_types)
 

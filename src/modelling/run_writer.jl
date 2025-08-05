@@ -126,7 +126,7 @@ function write_standby_forecasts(config::Dict, tz::TimeZone)
         )
 
         CSV.write(path, site_df)
-        # @success("💾 Wrote standby forecast chunk to $path")
+        @success("💾 Wrote standby forecast chunk to $path")
         send_forecast_to_full_s3_path(config, "_LOCAL", "output_folder", target_s3, filename)
     end
 end
@@ -171,7 +171,7 @@ function write_priority_forecasts(config::Dict, tz::TimeZone)
         site_df = select(site_df, :date, :entity_code, :minutes_until_return, :status_code, :forecast_at)
 
         CSV.write(path, site_df)
-        # @success("💾 Wrote priority forecast chunk to $path")
+        @success("💾 Wrote priority forecast chunk to $path")
         send_forecast_to_full_s3_path(config, "_LOCAL", "output_folder", target_s3, filename)
 
     end
@@ -186,7 +186,7 @@ function main(config::Dict)
     property    = config["_PROPERTY"]
     tz          = get_timezone(property)
 
-    # @header("📝 Formatting final site outputs", config=config)
+    @header("📝 Formatting final site outputs", config=config)
 
     if queue_type == "STANDBY"
         write_standby_forecasts(config, tz)
@@ -196,7 +196,7 @@ function main(config::Dict)
         error("❌ Unknown queue_type: $queue_type. Must be 'STANDBY' or 'PRIORITY'")
     end
 
-    # @success("✅ All site forecast files written and uploaded.")
+    @success("✅ All site forecast files written and uploaded.")
 end
 
 # --------------------------------------------------

@@ -40,7 +40,7 @@ function add_park_hours(df::DataFrame, attraction::Attraction)::DataFrame
     end
 
     # Load park_hours file
-    hours_path = "work/donor/donorparkhours.csv"
+    hours_path = joinpath(ROOT, "work", "_donor", "donorparkhours.csv")
     park_hours_df = CSV.read(hours_path, DataFrame)
     park_hours_df.opening_time = parse_zoneddatetimes_simple(park_hours_df.opening_time)
     park_hours_df.closing_time = parse_zoneddatetimes_simple(park_hours_df.closing_time)
@@ -82,7 +82,7 @@ end
 function add_dategroupid(df::DataFrame)::DataFrame
 
     # Load dategroupid file
-    dgid_path = "work/dim/dimdategroupid.csv"
+    dgid_path = joinpath(ROOT, "work", "_dim", "dimdategroupid.csv")
     dgid_df = CSV.read(dgid_path, DataFrame)
 
     # Add "pred_" prefix to the dategroupid column
@@ -107,7 +107,7 @@ end
 function add_season(df::DataFrame)::DataFrame
 
     # Load season file
-    season_path = "work/dim/dimseason.csv"
+    season_path = joinpath(ROOT, "work", "_dim", "dimseason.csv")
     season_df = CSV.read(season_path, DataFrame)
 
     # Add "pred_" prefix to the dategroupid column

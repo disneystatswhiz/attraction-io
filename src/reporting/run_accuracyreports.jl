@@ -65,13 +65,13 @@ end
 
 function run_accuracy_reports(attraction_code::String)
     # Load observed wait times
-    obs_posted = load_observed("work/$attraction_code/already_on_s3/wait_times_posted.csv")
-    obs_actual = load_observed("work/$attraction_code/already_on_s3/wait_times_actual.csv")
+    obs_posted = load_observed(joinpath(LOC_WORK, attraction_code, "already_on_s3", "wait_times_posted.csv"))
+    obs_actual = load_observed(joinpath(LOC_WORK, attraction_code, "already_on_s3", "wait_times_actual.csv"))
     df_obs = vcat(obs_posted, obs_actual)
 
     # Load forecasts
-    fcast_posted = load_forecast("work/$attraction_code/already_on_s3/forecasts_posted.csv")
-    fcast_actual = load_forecast("work/$attraction_code/already_on_s3/forecasts_actual.csv")
+    fcast_posted = load_forecast(joinpath(LOC_WORK, attraction_code, "already_on_s3", "forecasts_posted.csv"))
+    fcast_actual = load_forecast(joinpath(LOC_WORK, attraction_code, "already_on_s3", "forecasts_actual.csv"))
     df_forecast = vcat(fcast_posted, fcast_actual)
 
     # Join on timestamp and type
@@ -85,8 +85,8 @@ function run_accuracy_reports(attraction_code::String)
     mae = mean(skipmissing(df_joined.abs_error))
     mre = mean(skipmissing(df_joined.rel_error))
 
-    # @info "Overall MAE for $attraction_code: $mae"
-    # @info "Overall MRE for $attraction_code: $mre"
+    @info "Overall MAE for $attraction_code: $mae"
+    @info "Overall MRE for $attraction_code: $mre"
 
     df_summary = summarize_errors(df_joined)
     display(df_summary)

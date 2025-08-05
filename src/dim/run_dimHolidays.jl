@@ -25,12 +25,12 @@ end
 # ------------------------------------------------------------------
 # Main Processing
 function main()
-    holidays_path = "work/dim/dimholidays.csv"
+    holidays_path = joinpath(LOC_DIM, "dimholidays.csv")
     if isfile(holidays_path)
         return
     end
 
-    df = CSV.read("work/dim/dimdate.csv", DataFrame)
+    df = CSV.read(joinpath(LOC_DIM, "dimdate.csv"), DataFrame)
     sort!(df, :park_day_id)
 
     df[!, :holidaycode] .= "NONE"

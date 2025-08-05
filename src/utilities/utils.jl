@@ -84,18 +84,48 @@ function parse_zoneddatetimes(input_vector::AbstractVector)
     end for x in input_vector]
 end
 
-"""
-    parse_zoneddatetimes_simple(input_vector::AbstractVector)
-
-Use for CSVS that we created
-
-Similar to `parse_zoneddatetimes`, but assumes input is already in a simple format
-without timezone offsets, e.g., "2023-10-01T12:00:00".
-Returns a vector of `ZonedDateTime` values.
-"""
+# --------------------------------------------------------
+# 🚫 Legacy version — assumes all values are strings
+# --------------------------------------------------------
 function parse_zoneddatetimes_simple(input_vector::AbstractVector)
     fmt = DateFormat("yyyy-mm-ddTHH:MM:SS.ssszzz")
     return [ZonedDateTime(String(x), fmt) for x in input_vector]
+end
+
+"""
+    parse_zoneddatetimes_smart(input_vector::AbstractVector; timezone=TimeZone("America/New_York"))
+
+Smart parser for mixed-format ISO8601 strings into `ZonedDateTime`.
+
+- Supports clean and dirty formats (`.sss` fractional seconds or not, with or without offset)
+- Fixes offset formatting (`+hh:mm` → `+hhmm`)
+- Gracefully handles already-parsed values, `missing`, and bad strings
+
+Returns `Vector{Union{ZonedDateTime, Missing}}`.
+"""
+# THIS FUNCTION NEEDS TESTING - JUST A PLACEHOLDER FOR FUTURE DEV #
+function parse_zoneddatetimes_smart(input_vector::AbstractVector; timezone=TimeZone("America/New_York"))
+
+    fmt_simple = DateFormat("yyyy-mm-ddTHH:MM:SS.ssszzz")
+    fmt_clean  = DateFormat("yyyy-MM-ddTHH:MM:SSzzz")
+
+    return [try
+        if x isa Missing
+            missing
+        elseif x isa ZonedDateTime
+            x
+        else
+            str = string(x)
+            str_fixed = replace(str, r"([+-]\d{2}):(\d{2})" => s"\1\2")
+            if occursin('.', str_fixed)
+                ZonedDateTime(str_fixed, fmt_simple, timezone)
+            else
+                ZonedDateTime(str_fixed, fmt_clean)
+            end
+        end
+    catch
+        missing
+    end for x in input_vector]
 end
 
 
@@ -178,22 +208,42 @@ function get_park_day_id(df::DataFrame, dt_col_name::Symbol)
 end
 
 # --------------------------------------------------------------------- #
-# Fully remove a folder and all of its contents.                       #
-# If the folder exists, delete it recursively.                         #
-# If the folder does not exist, do nothing.                            #
+# Remove all files or folders whose name contains the given pattern.   #
+# Matching is case-insensitive.                                        #
+# - Searches recursively in the base folder (default: pwd())           #
+# - Deletes any matching file or directory                             #
 # Args:                                                                 #
-# - folder   → the folder to delete                                     #
+# - pattern   → substring to match (e.g. entity_code like "ak07")      #
+# - base_dir  → where to search (default: current working dir)         #
 # --------------------------------------------------------------------- #
-function cleanup_folders(folder::String)
-    if isdir(folder)
+function cleanup_folders(pattern::String; base_dir::String = pwd())
+    matches = []
+    pattern_lc = lowercase(pattern)
+
+    for (root, dirs, files) in walkdir(base_dir)
+        for name in vcat(dirs, files)
+            if occursin(pattern_lc, lowercase(name))
+                fullpath = joinpath(root, name)
+                push!(matches, fullpath)
+            end
+        end
+    end
+
+    for path in matches
         try
-            rm(folder; recursive=true)
-            # @info("🧹 Deleted folder and all contents: $folder")
+            if isdir(path)
+                rm(path; recursive=true)
+                # @info "🧹 Deleted folder: $path"
+            else
+                rm(path)
+                # @info "🧹 Deleted file: $path"
+            end
         catch e
-            # @warn("⚠️  Failed to delete folder: $folder — $(e.msg)")
+            # @warn "⚠️  Could not delete $path — $(e.msg)"
         end
     end
 end
+
 
 
 # --------------------------------------------------------------------- #

@@ -86,7 +86,7 @@ Upload a local file to a given S3 path.
 
 Example:
     upload_file_to_s3(
-        "output/forecasts/AK07.csv",        # Local file to upload
+        "output/AK07/forecasts.csv",        # Local file to upload
         "s3://bucket/forecasts/AK07.csv"    # S3 file path to save as
     )
 """
