@@ -1,4 +1,4 @@
-using CSV, DataFrames, Dates, Statistics, Plots, TimeZones
+using CSV, DataFrames, Dates, Statistics, TimeZones
 
 # ---------------------------------------------------------
 # functions

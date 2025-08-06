@@ -1,4 +1,4 @@
-using CSV, DataFrames, Statistics, Dates, Plots
+using CSV, DataFrames, Statistics, Dates
 
 # ----------------------------
 # Load and clean observations for a given wait_time_type

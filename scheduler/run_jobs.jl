@@ -1,8 +1,7 @@
 # ===================================================================================== #
 #                  Attraction-IO Parallel Polling Launcher (Async)                      #
 # ===================================================================================== #
-
-using DataFrames, Dates, CSV, Logging
+using DataFrames, Dates, CSV, Logging, Random
 
 # ===================================================================================== #
 # -------------------------- Initial Setup and Configuration -------------------------- #
@@ -76,7 +75,8 @@ function run_one_job(prop::String, typ::String)
         return
     end
 
-    # @info "▶️  Running $typ jobs for $prop (found $(length(entities)) entities)"
+    shuffle!(entities)  # <-- RANDOMIZE ORDER!
+
     for entity in entities
         park = lowercase(first(entity, 2))
         cmd  = `julia --project=. src/main_runner.jl $entity $park $prop $queue_type`
