@@ -1,104 +1,46 @@
-# --------------------------------------------------------------------
-# run_writer.jl - Format & send forecast logs to S3 for site use
-# --------------------------------------------------------------------
+# -------------------------------------------------------------------- #
+# run_writer.jl - Format & send forecast logs to S3 for site use       #
+# Modern, explicit pipeline version                                    #
+# -------------------------------------------------------------------- #
 
-using Dates, CSV, DataFrames, JSON3, TimeZones
+using Dates, CSV, DataFrames, TimeZones
 
-# --------------------------------------------------
-# Resolve S3 upload target from config
-# --------------------------------------------------
-function resolve_s3_target(config::Dict, queue_type::String, park_code::String)::String
-    root_key   = config["_PARAMETERS"]["send_forecasts_to"]
-    queue_type = uppercase(queue_type)
-    park_code  = lowercase(park_code)
-
-    base_path = get(config["_S3_OUTPUTS"], "forecasts_to_$(lowercase(root_key))", nothing)
-    base_path === nothing && error("❌ Unknown send_forecasts_to root: $root_key")
-
-    s3_path =
-        if root_key == "STAGING"
-            queue_type == "STANDBY"  ? join([base_path, "standby"], "/") :
-            queue_type == "PRIORITY" ? join([base_path, "fp_next_available", park_code], "/") :
-            error("❌ Unknown queue_type: $queue_type")
-
-        elseif root_key == "PRODUCTION"
-            queue_type == "STANDBY"  ? join([base_path, "standby", park_code], "/") :
-            queue_type == "PRIORITY" ? join([base_path, "fp_next_available", park_code], "/") :
-            error("❌ Unknown queue_type: $queue_type")
-
-        else
-            base_path  # Fallback
-        end
-
-    return replace(s3_path, "\\" => "/")
-end
-
-
-# --------------------------------------------------
-# Upload local forecast file to a full S3 path using send_to_s3
-# --------------------------------------------------
-function send_forecast_to_full_s3_path(config::Dict, local_group::String, local_key::String, s3_path::String, filename::String)
-    temp_key = "__TEMP_S3_TARGET__"
-    config["_S3_OUTPUTS"][temp_key] = s3_path
-    send_to_s3(config, local_group, local_key, temp_key, filename)
-    delete!(config["_S3_OUTPUTS"], temp_key)  # Clean up
-end
-
-# --------------------------------------------------
-# Map property to correct TimeZone object
-# --------------------------------------------------
-function get_timezone(property::String)::TimeZone
+function get_site_timezone(property::String)::TimeZone
     return property == "WDW" || property == "UOR" ? TimeZone("America/New_York") :
            property == "DLR" || property == "USH" ? TimeZone("America/Los_Angeles") :
            property == "TDL"                     ? TimeZone("Asia/Tokyo") :
            error("❌ Unknown property: $property")
 end
 
-# --------------------------------------------------
-# Format datetime in ISO 8601 format with timezone
-# --------------------------------------------------
 function format_with_tz(dt::DateTime, tz::TimeZone)::String
     return string(ZonedDateTime(dt, tz))
 end
 
-# --------------------------------------------------
-# Merge posted + actual forecasts into standby format
-# --------------------------------------------------
-function merge_standby_forecasts(df_posted::DataFrame, df_actual::DataFrame)::DataFrame
+# Merge posted + actual into standby site ingest format
+function merge_standby_forecasts(df_posted::DataFrame, df_actual::DataFrame)
     df_posted.meta_observed_at = DateTime.(df_posted.meta_observed_at)
     df_actual.meta_observed_at = DateTime.(df_actual.meta_observed_at)
-
     df_merged = innerjoin(df_posted, df_actual, on = [:meta_observed_at, :id_entity_code], makeunique=true)
     rename!(df_merged, Dict(
         :predicted_wait_time => :posted_time,
         :predicted_wait_time_1 => :actual_time,
         :id_entity_code => :entity_code
     ))
-
     df_merged.status_code = fill("", nrow(df_merged))
     df_merged.forecast_at = df_merged.meta_observed_at
     df_merged.date = Date.(df_merged.id_park_day_id)
-
     return df_merged
 end
 
-# --------------------------------------------------
-# Write standby forecast files
-# --------------------------------------------------
-function write_standby_forecasts(config::Dict, tz::TimeZone)
-    entity_code   = config["_ENTITY"]
-    output_folder = config["_LOCAL"]["output_folder"]
-    queue_type = config["_PARSING"]["queue_type"]
-    park_code  = config["_PARSING"]["park_code"]
-    target_s3  = resolve_s3_target(config, queue_type, park_code)
-
-    # @info("🔀 Merging POSTED and ACTUAL forecasts for standby queue...")
+function write_standby_site_files(attraction::Attraction, output_folder::String)
+    entity_code = attraction.code
+    property = attraction.property
+    tz = get_site_timezone(property)
 
     file_posted = joinpath(output_folder, "forecasts_$(entity_code)_posted.csv")
     file_actual = joinpath(output_folder, "forecasts_$(entity_code)_actual.csv")
-
-    if !isfile(file_posted) || !isfile(file_actual)
-        # @warn("⚠️ Missing posted or actual forecast file — skipping standby merge.")
+    if !(isfile(file_posted) && isfile(file_actual))
+        @warn "⚠️ Missing posted or actual forecast file for $entity_code — skipping standby site output."
         return
     end
 
@@ -125,27 +67,24 @@ function write_standby_forecasts(config::Dict, tz::TimeZone)
             :forecast_at => ByRow(dt -> format_with_tz(dt, tz)) => :forecast_at
         )
 
+        # Enforce schema
+        expected_cols = [:date, :entity_code, :posted_time, :actual_time, :status_code, :forecast_at]
+        @assert names(site_df) == expected_cols "❌ Columns do not match required ingest schema!"
+
         CSV.write(path, site_df)
-        @success("💾 Wrote standby forecast chunk to $path")
-        send_forecast_to_full_s3_path(config, "_LOCAL", "output_folder", target_s3, filename)
+        s3_path = "s3://touringplans_stats/stats_work/attraction-io/site_ingest/$(filename)"
+        upload_file_to_s3(path, s3_path)
+        @info "💾 Wrote and uploaded standby site forecast chunk: $path → $s3_path"
     end
 end
 
-# --------------------------------------------------
-# Write priority forecast files
-# --------------------------------------------------
-function write_priority_forecasts(config::Dict, tz::TimeZone)
-    entity_code   = config["_ENTITY"]
-    output_folder = config["_LOCAL"]["output_folder"]
-    queue_type = config["_PARSING"]["queue_type"]
-    park_code  = config["_PARSING"]["park_code"]
-    target_s3  = resolve_s3_target(config, queue_type, park_code)
-
-    # @info("📦 Handling PRIORITY forecasts for $entity_code...")
-
+function write_priority_site_files(attraction::Attraction, output_folder::String)
+    entity_code = attraction.code
+    property = attraction.property
+    tz = get_site_timezone(property)
     file_priority = joinpath(output_folder, "forecasts_$(entity_code)_priority.csv")
     if !isfile(file_priority)
-        # @warn("⚠️ No priority forecast file found — skipping.")
+        @warn "⚠️ No priority forecast file for $entity_code — skipping priority site output."
         return
     end
 
@@ -169,37 +108,28 @@ function write_priority_forecasts(config::Dict, tz::TimeZone)
             forecast_at = format_with_tz.(g.meta_observed_at, tz)
         )
         site_df = select(site_df, :date, :entity_code, :minutes_until_return, :status_code, :forecast_at)
+        expected_cols = [:date, :entity_code, :minutes_until_return, :status_code, :forecast_at]
+        @assert names(site_df) == expected_cols "❌ Columns do not match required ingest schema!"
 
         CSV.write(path, site_df)
-        @success("💾 Wrote priority forecast chunk to $path")
-        send_forecast_to_full_s3_path(config, "_LOCAL", "output_folder", target_s3, filename)
-
+        s3_path = "s3://touringplans_stats/stats_work/attraction-io/site_ingest/$(filename)"
+        upload_file_to_s3(path, s3_path)
+        @info "💾 Wrote and uploaded priority site forecast chunk: $path → $s3_path"
     end
 end
 
-# --------------------------------------------------
-# Entrypoint
-# --------------------------------------------------
-function main(config::Dict)
-    entity_code = config["_ENTITY"]
-    queue_type  = config["_PARSING"]["queue_type"]
-    property    = config["_PROPERTY"]
-    tz          = get_timezone(property)
-
-    @header("📝 Formatting final site outputs", config=config)
-
-    if queue_type == "STANDBY"
-        write_standby_forecasts(config, tz)
-    elseif queue_type == "PRIORITY"
-        write_priority_forecasts(config, tz)
+function main(attraction::Attraction, output_folder::String)
+    @info "📝 Formatting final site outputs for $(attraction.code) ($(attraction.queue_type))"
+    if attraction.queue_type == "standby"
+        write_standby_site_files(attraction, output_folder)
+    elseif attraction.queue_type == "priority"
+        write_priority_site_files(attraction, output_folder)
     else
-        error("❌ Unknown queue_type: $queue_type. Must be 'STANDBY' or 'PRIORITY'")
+        error("❌ Unknown queue_type: $(attraction.queue_type). Must be 'standby' or 'priority'")
     end
-
-    @success("✅ All site forecast files written and uploaded.")
+    @info "✅ All site forecast files written and uploaded for $(attraction.code)"
 end
 
-# --------------------------------------------------
-# Run it
-# --------------------------------------------------
-main(config)
+# Usage (example):
+# main(ATTRACTION, LOC_OUTPUT)
+

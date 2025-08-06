@@ -67,7 +67,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
     end
 
     # --- Hourly profile ---
-    df.hour_of_day = floor.(Int, df.pred_mins_since_6am ./ 60)
+    df.hour_of_day = mod.(floor.(Int, df.pred_mins_since_6am ./ 60) .+ 6, 24)
 
     function hour_label(hour::Int)
         hour = mod(hour, 24)

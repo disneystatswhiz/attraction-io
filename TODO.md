@@ -24,5 +24,6 @@
 - [ ] Drop rows from modelling where geo_decay_wgt is 0 - maybe that will speed up modelling?
 - [ ] Make custom descriptive summary for priority entities - to treat the 8888s
 - [ ] Check why 8pm to 11pm hours dont have averages for MK44 (perhaps others as well) on descp summary
-- [ ] Check why/if forecasts are not appending from day-to-day on S3
+- [X] - SOLVED Check why/if forecasts are not appending from day-to-day on S3
+- [ ] Add/fix code so that full modelling doesn't re-run with same input data
 

@@ -59,7 +59,7 @@ include(joinpath(ROOT, "src", "calendar", "run_assign_levels.jl"))
 
 include(joinpath(ROOT, "src", "data", "run_sync.jl"))  # Refresh before reporting
 include(joinpath(ROOT, "src", "reporting", "run_descriptives.jl"))
-#include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))  # Optional
+include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
 
 # ===================================================================================== #
 # ---------------------------- Final Logging and Cleanup ------------------------------ #

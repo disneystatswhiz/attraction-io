@@ -59,10 +59,6 @@ function summarize_errors(df::DataFrame)::DataFrame
     )
 end
 
-# ---------------------------------------------------------
-# Main Logic
-# ---------------------------------------------------------
-
 function run_accuracy_reports(attraction_code::String)
     # Load observed wait times
     obs_posted = load_observed(joinpath(LOC_WORK, attraction_code, "already_on_s3", "wait_times_posted.csv"))
@@ -89,13 +85,131 @@ function run_accuracy_reports(attraction_code::String)
     @info "Overall MRE for $attraction_code: $mre"
 
     df_summary = summarize_errors(df_joined)
-    display(df_summary)
 
     return df_summary
+end
+
+# Helper for safe quantiles
+safe_quantile(v, q) = isempty(v) ? missing : quantile(v, q)
+
+function process_accuracy_report(
+    attraction_code::String,
+    wait_time_type::String,
+    df_joined::DataFrame
+)
+    upper_code = uppercase(attraction_code)
+    suffix = lowercase(wait_time_type)
+
+    # Only include relevant rows
+    filter!(row -> !ismissing(row.abs_error), df_joined)
+    if nrow(df_joined) == 0
+        @warn "No joined accuracy data for $attraction_code [$wait_time_type]."
+        return nothing
+    end
+
+    # Mode helper
+    function mode_skipmissing(v)
+        v_clean = collect(skipmissing(v))
+        isempty(v_clean) && return missing
+        counts = Dict{eltype(v_clean), Int}()
+        for x in v_clean
+            counts[x] = get(counts, x, 0) + 1
+        end
+        max_count = maximum(values(counts))
+        modes = [k for (k, cnt) in counts if cnt == max_count]
+        return maximum(modes)
+    end
+
+    # Basic summary stats (Abs/Rel Error)
+    abs_errors = skipmissing(df_joined.abs_error)
+    rel_errors = skipmissing(df_joined.rel_error)
+
+    overall_stats = DataFrame(
+        attraction_code    = upper_code,
+        wait_time_type     = uppercase(wait_time_type),
+        n_obs              = nrow(df_joined),
+        mean_abs_error     = mean(abs_errors),
+        median_abs_error   = median(abs_errors),
+        mode_abs_error     = mode_skipmissing(abs_errors),
+        p25_abs_error      = safe_quantile(abs_errors, 0.25),
+        p75_abs_error      = safe_quantile(abs_errors, 0.75),
+        p95_abs_error      = safe_quantile(abs_errors, 0.95),
+        stddev_abs_error   = std(abs_errors),
+        max_abs_error      = maximum(abs_errors),
+        min_abs_error      = minimum(abs_errors)
+    )
+
+    # Round numeric floats
+    for col in names(overall_stats)
+        if eltype(overall_stats[!, col]) <: AbstractFloat
+            overall_stats[!, col] .= round.(overall_stats[!, col], digits=3)
+        end
+    end
+
+    # --- Hourly profile for errors ---
+    df_joined[!, :hour_of_day] = mod.(floor.(Int, df_joined.mins_since_6am ./ 60) .+ 6, 24)
+    
+    function hour_label(hour::Int)
+        hour = mod(hour, 24)
+        if hour == 0
+            return "hour_midnight"
+        elseif hour == 12
+            return "hour_12pm"
+        elseif hour < 12
+            return "hour_$(hour)am"
+        else
+            return "hour_$(hour - 12)pm"
+        end
+    end
+
+    # Group by hour_of_day and compute mean absolute error
+    df_hour = combine(groupby(df_joined, :hour_of_day), :abs_error => mean => :mean_abs_error)
+    df_hour.hour_label = hour_label.(df_hour.hour_of_day)
+    df_hour.mean_abs_error .= round.(df_hour.mean_abs_error, digits=1)
+    hour_dict = Dict(df_hour.hour_label .=> df_hour.mean_abs_error)
+
+    ordered_labels = [
+        "hour_6am", "hour_7am", "hour_8am", "hour_9am", "hour_10am", "hour_11am",
+        "hour_12pm", "hour_1pm", "hour_2pm", "hour_3pm", "hour_4pm", "hour_5pm",
+        "hour_6pm", "hour_7pm", "hour_8pm", "hour_9pm", "hour_10pm", "hour_11pm",
+        "hour_midnight", "hour_1am", "hour_2am", "hour_3am", "hour_4am", "hour_5am"
+    ]
+
+    hour_stats = DataFrame([NamedTuple{Tuple(Symbol.(ordered_labels))}(Tuple(get(hour_dict, label, missing) for label in ordered_labels))])
+
+
+    # Final combine
+    overall_stats = hcat(overall_stats, hour_stats)
+    overall_stats.summary_date = fill(today(), 1)
+
+    # Write output
+    out_name   = "accuracy_summary_$(upper_code)_$(suffix).csv"
+    local_path = joinpath(LOC_WORK, uppercase(upper_code), "already_on_s3", out_name)
+    out_path   = joinpath(LOC_OUTPUT, uppercase(upper_code), out_name)
+    s3_path    = "s3://touringplans_stats/stats_work/attraction-io/reporting/$(out_name)"
+
+    CSV.write(local_path, overall_stats; append=isfile(local_path))
+    cp(local_path, out_path; force=true)
+    upload_file_to_s3(out_path, s3_path)
+
+    # @info "✅ Finished accuracy report for $upper_code [$suffix]"
 end
 
 # ---------------------------------------------------------
 # Run it!
 # ---------------------------------------------------------
 
-df_summary = run_accuracy_reports(ATTRACTION.code)
+for wait_type in wait_time_types
+    wt_lower = lowercase(wait_type)
+    obs_path = joinpath(LOC_WORK, ATTRACTION.code, "already_on_s3", "wait_times_$(wt_lower).csv")
+    fcast_path = joinpath(LOC_WORK, ATTRACTION.code, "already_on_s3", "forecasts_$(wt_lower).csv")
+
+    if isfile(obs_path) && isfile(fcast_path)
+        df_obs = load_observed(obs_path)
+        df_fcast = load_forecast(fcast_path)
+        df_joined = innerjoin(df_obs, df_fcast, on=[:observed_at_r15, :wait_time_type])
+        filter!(row -> !ismissing(row.wait_time_minutes) && !ismissing(row.predicted_wait_time), df_joined)
+        compute_errors(df_joined)
+        process_accuracy_report(ATTRACTION.code, wt_lower, df_joined)
+    end
+end
