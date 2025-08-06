@@ -1,6 +1,18 @@
-# 🎢 EC2 Master Wait Time Pipeline
+# 🎢 ATTRACTION-IO Wait Time Pipeline
 
 This repository contains the full EC2-ready data pipeline for attraction wait time modeling, forecast logging, crowd calendar generation, and reporting.
+
+---
+
+## 🏁 Getting Started
+
+1. `git clone ...` and `cd` into this repo.
+2. Install dependencies: `julia --project=. -e 'using Pkg; Pkg.instantiate()'`
+3. Run batch: `pipeline.bat` (local) or `pipeline.sh` (EC2).
+4. To run a single attraction: `julia main_runner.jl <entity> <park> <property> <type>` all lowercase
+5. Type is wait time type: `standby` or `priority`
+
+See code comments for further details per module.
 
 ---
 
@@ -11,8 +23,8 @@ This project supports a modular pipeline to:
 - ✅ Load and encode attraction wait time data
 - ✅ Train and score forecasting models (XGBoost)
 - ✅ Log and sync predictions to S3
-- 🔜 Generate daily Crowd Calendar levels
-- 🔜 Output reporting for internal and external use
+- ✅ Generate daily Crowd Calendar levels
+- ✅ Output reporting for internal and external use
 
 ---
 
@@ -20,26 +32,68 @@ This project supports a modular pipeline to:
 
 ```
 .
+├── input/
+│   └── datasets imported from S3
+├── output/
+│   └── datasets queued for loading to S3
+├── scheduler/
+│   └── run_jobs.jl
 ├── src/
+│   ├── calendar/
+│   │   ├── run_assign_levels.jl
+│   │   ├── run_dailyavgs.jl
+│   │   ├── run_thresholds.jl
+│   ├── data/
+│   │   ├── run_features.jl
+│   │   ├── run_futuredates.jl
+│   │   ├── run_premodelling.jl
+│   │   ├── run_setattraction.jl
+│   │   ├── run_sync.jl
+│   │   ├── run_tracking.jl
+│   │   ├── run_wait_time_ingestion.jl
+│   ├── dim/
+│   │   ├── run_dimDate.jl
+│   │   ├── run_dimDateGroupID.jl
+│   │   ├── run_dimEntity.jl
+│   │   ├── run_dimEvents.jl
+│   │   ├── run_dimHolidays.jl
+│   │   ├── run_dimMetatable.jl
+│   │   ├── run_dimParkHours.jl
+│   │   ├── run_dimSeason.jl
+│   ├── donor/
+│   │   ├── run_donorParkHours.jl
 │   ├── modelling/
 │   │   ├── run_encodefeatures.jl
-│   │   ├── run_trainer.jl
 │   │   ├── run_predictions.jl
-│   ├── data/
-│   │   ├── run_sync.jl
-│   └── utils/
-│       ├── Structs.jl
-│       ├── S3Utils.jl
+│   │   ├── run_trainer.jl
+│   │   ├── run_writer.jl # Currently Optional and not in production
+│   ├── modules/
+│   │   ├── mod_customloaders.jl
+│   │   ├── mod_encoders.jl
+│   ├── reporting/
+│   │   ├── run_accuracyreports.jl
+│   │   ├── run_descriptives.jl
+│   │   ├── run_pipelinestatus.jl
+│   ├── utilities/
+│   │   ├── features.jl
+│   │   ├── s3syncmanager.jl
+│   │   ├── s3utils.jl
+│   │   ├── structs.jl
+│   │   ├── utility_setup.jl
+│   │   ├── utils.jl
+│   ├── main_runner.jl
+│   └── main_setup.jl
+├── temp/
+│   └── temporary scripts and data
 ├── work/
-│   └── <entity_code>/
-│       └── wait_times/
-│           ├── to_be_modelled_<entity_code>.csv
-│           └── scored_<entity_code>.csv
-├── input/
-│   └── forecasts/
-├── output/$(uppercase(ATTRACTION.code))/
-│   └── forecasts_<entity_code>.csv
+│   └── holding folder for attraction files
+├── .gitignore
+├── Manifest.toml
+├── pipeline.bat # batch runner for local job
+├── pipeline.sh # batch runner for EC2 job
+├── Project.toml
 ├── README.md
+├── TODO.md
 ```
 
 ---
@@ -77,11 +131,9 @@ main(attraction::Attraction)
 
 - Appends new scored predictions to existing forecast logs
 - Saves result in `output/$(uppercase(ATTRACTION.code))/forecasts_<entity_code>.csv`
-- Uploads to S3: `s3://touringplans_stats/stats_work/attraction/io/forecasts`
+- Uploads to S3: `s3://touringplans_stats/stats_work/attraction-io/forecasts`
 
 ---
-
-## 🔭 Coming Soon
 
 ### 🗓️ Crowd Calendar Processing
 
