@@ -17,9 +17,21 @@ Example:
     sync_wait_times("AK07", "wdw", "standby")
 """
 function sync_wait_times(entity_id::String, property::String, type::String)
-
     s3_base = "s3://touringplans_stats/export"
+    today_str = string(Dates.today())
+    lock_dir = joinpath(LOC_INPUT, "wait_times", property)
+    lock_file = joinpath(lock_dir, "sync.lock")
 
+    # Check if today's lock file exists
+    if isfile(lock_file)
+        lock_date = Date(read(lock_file, String))
+        if lock_date == Dates.today()
+            # @info("✅ [$(property)] Sync already performed today, skipping.")
+            return
+        end
+    end
+
+    # Otherwise, perform sync as usual
     if type == "standby"
         s3path = "$s3_base/wait_times/$property/"
         localpath = joinpath(LOC_INPUT, "wait_times", property)
@@ -27,18 +39,25 @@ function sync_wait_times(entity_id::String, property::String, type::String)
         s3path = "$s3_base/fastpass_times/$property/"
         localpath = joinpath(LOC_INPUT, "wait_times", "priority", property)
     else
-        error("❌ Unsupported type: $type. Use 'standby' or 'priority'.")
+        @error("❌ Unsupported type: $type. Use 'standby' or 'priority'.")
     end
 
     mkpath(localpath)
-
+    # @info("⏳ [$(property)] Syncing from S3 for $type...")
     success = sync_from_s3_folder(
         s3path, localpath;
         include=["$entity_id*.csv"]
     )
 
-
+    # Write/update lock file with today's date if successful
+    if success
+        open(lock_file, "w") do io
+            write(io, today_str)
+        end
+        # @info("🔒 [$(property)] Sync completed, lock file updated.")
+    end
 end
+
 
 # -------------------------------------------------------
 # Sync all entity files from S3
