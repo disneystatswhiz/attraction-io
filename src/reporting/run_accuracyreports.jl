@@ -59,36 +59,6 @@ function summarize_errors(df::DataFrame)::DataFrame
     )
 end
 
-function run_accuracy_reports(attraction_code::String)
-    # Load observed wait times
-    obs_posted = load_observed(joinpath(LOC_WORK, attraction_code, "already_on_s3", "wait_times_posted.csv"))
-    obs_actual = load_observed(joinpath(LOC_WORK, attraction_code, "already_on_s3", "wait_times_actual.csv"))
-    df_obs = vcat(obs_posted, obs_actual)
-
-    # Load forecasts
-    fcast_posted = load_forecast(joinpath(LOC_WORK, attraction_code, "already_on_s3", "forecasts_posted.csv"))
-    fcast_actual = load_forecast(joinpath(LOC_WORK, attraction_code, "already_on_s3", "forecasts_actual.csv"))
-    df_forecast = vcat(fcast_posted, fcast_actual)
-
-    # Join on timestamp and type
-    df_joined = innerjoin(df_obs, df_forecast, on=[:observed_at_r15, :wait_time_type])
-    filter!(row -> !ismissing(row.wait_time_minutes) && !ismissing(row.predicted_wait_time), df_joined)
-
-    # Compute errors
-    compute_errors(df_joined)
-
-    # Summary stats
-    mae = mean(skipmissing(df_joined.abs_error))
-    mre = mean(skipmissing(df_joined.rel_error))
-
-    @info "Overall MAE for $attraction_code: $mae"
-    @info "Overall MRE for $attraction_code: $mre"
-
-    df_summary = summarize_errors(df_joined)
-
-    return df_summary
-end
-
 # Helper for safe quantiles
 safe_quantile(v, q) = isempty(v) ? missing : quantile(v, q)
 
@@ -103,7 +73,7 @@ function process_accuracy_report(
     # Only include relevant rows
     filter!(row -> !ismissing(row.abs_error), df_joined)
     if nrow(df_joined) == 0
-        @warn "No joined accuracy data for $attraction_code [$wait_time_type]."
+        # @warn "No joined accuracy data for $attraction_code [$wait_time_type]."
         return nothing
     end
 
