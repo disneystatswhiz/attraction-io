@@ -159,6 +159,7 @@ function process_accuracy_report(
     s3_path    = "s3://touringplans_stats/stats_work/attraction-io/reporting/$(out_name)"
 
     CSV.write(local_path, overall_stats; append=isfile(local_path))
+    mkpath(dirname(out_path))  # <-- Ensures the folder exists!
     cp(local_path, out_path; force=true)
     upload_file_to_s3(out_path, s3_path)
 
@@ -171,8 +172,8 @@ end
 
 for wait_type in wait_time_types
     wt_lower = lowercase(wait_type)
-    obs_path = joinpath(LOC_WORK, ATTRACTION.code, "already_on_s3", "wait_times_$(wt_lower).csv")
-    fcast_path = joinpath(LOC_WORK, ATTRACTION.code, "already_on_s3", "forecasts_$(wt_lower).csv")
+    obs_path = joinpath(LOC_WORK, ATTRACTION.code, "already_on_s3", "wait_times_$(uppercase(ATTRACTION.code))_$(wt_lower).csv")
+    fcast_path = joinpath(LOC_WORK, ATTRACTION.code, "already_on_s3", "forecasts_$(uppercase(ATTRACTION.code))_$(wt_lower).csv")
 
     if isfile(obs_path) && isfile(fcast_path)
         df_obs = load_observed(obs_path)

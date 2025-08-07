@@ -13,7 +13,7 @@ start_time_pipeline = time_ns()
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
 
 const POLL_INTERVAL = Minute(10)
-const CUT_OFF_TIME  = Time(07, 00)
+const CUT_OFF_TIME  = Time(10, 00)
 const BUCKET        = "touringplans_stats"
 today_date          = today()
 
@@ -60,18 +60,18 @@ function run_one_job(prop::String, typ::String)
         queue_type = "standby"
     elseif typ == "priority"
         if prop == "uor"
-            @info "ℹ️  UOR has no priority job—skipping."
+            # @info "ℹ️  UOR has no priority job—skipping."
             return
         end
         entities = get_priority_entities(prop)
         queue_type = "priority"
     else
-        @warn "Unknown job type: $typ"
+        # @warn "Unknown job type: $typ"
         return
     end
 
     if isempty(entities)
-        @info "⚠️  No $typ entities found for $prop — skipping."
+        # @info "⚠️  No $typ entities found for $prop — skipping."
         return
     end
 
@@ -83,7 +83,7 @@ function run_one_job(prop::String, typ::String)
         try
             run(cmd)
         catch e
-            @warn "❌ [$prop] $entity failed: $e"
+            # @warn "❌ [$prop] $entity failed: $e"
         end
     end
 
@@ -124,18 +124,18 @@ while !isempty(pending) && Time(now()) ≤ CUT_OFF_TIME
             "export/fastpass_times/$prop/current_fastpass.csv"
         last_mod = get_last_modified_s3(BUCKET, key)
         if last_mod == today_date
-            @info "✅ Data ready for $prop $typ — launching async job"
+            # @info "✅ Data ready for $prop $typ — launching async job"
             job_tasks[(prop, typ)] = @async run_one_job(prop, typ)
             delete!(pending, (prop, typ))
         else
-            @info "⏳ Waiting for $prop $typ data to be ready... (last_mod = $last_mod, today = $today_date)"
+            # @info "⏳ Waiting for $prop $typ data to be ready... (last_mod = $last_mod, today = $today_date)"
         end
     end
     isempty(pending) || sleep(Dates.value(POLL_INTERVAL) * 60)
 end
 
 if !isempty(pending)
-    @warn "⚠️  Cutoff reached—these jobs never had data: $(collect(pending))"
+    # @warn "⚠️  Cutoff reached—these jobs never had data: $(collect(pending))"
 end
 
 # ===================================================================================== #
@@ -145,11 +145,11 @@ end
 # @info "⌛ Waiting for all launched jobs to finish..."
 for ((prop, typ), task) in job_tasks
     wait(task)
-    @info "🎉 Completed job for $prop $typ"
+    # @info "🎉 Completed job for $prop $typ"
 end
 
 elapsed = round((time_ns() - start_time_pipeline) / 1e9 / 60, digits=2)
-@info "🏁 All done. Total elapsed time: $(elapsed) minutes."
+# @info "🏁 All done. Total elapsed time: $(elapsed) minutes."
 
 # ===================================================================================== #
 #                                End of Polling Launcher                               #

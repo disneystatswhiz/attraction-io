@@ -71,7 +71,7 @@ function run_entity_forecast_logger(attraction::Attraction)
 
     # If all forecast types are missing, skip this entity
     if all(x -> x === nothing, values(forecast_dict))
-        @warn "⏭️ Skipping $entity_code — no forecasts available or imputed."
+        # @warn "⏭️ Skipping $entity_code — no forecasts available or imputed."
         return
     end
 
@@ -81,7 +81,7 @@ function run_entity_forecast_logger(attraction::Attraction)
 
         wt_lower = lowercase(wt_type)
         base_filename = "forecasts_$(entity_code)_$(wt_lower).csv"
-        already_on_s3_file = joinpath(LOC_WORK, entity_code, "already_on_s3", "forecasts_$(wt_lower).csv")
+        already_on_s3_file = joinpath(LOC_WORK, entity_code, "already_on_s3", "forecasts_$(uppercase(ATTRACTION.code))_$(wt_lower).csv")
         output_path = joinpath(LOC_OUTPUT, entity_code, base_filename)
 
         # Load existing forecasts from already_on_s3 (just synced earlier in pipeline)

@@ -15,6 +15,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
 
     df = CSV.read(path, DataFrame)
     filter!(row -> !ismissing(row.target), df)
+    filter!(row -> row.target < 8888, df) # Filter out priority "sold-out" flags
     df.meta_observed_at = parse_zoneddatetimes_simple(df.meta_observed_at)
 
     # --- Basic summary stats ---

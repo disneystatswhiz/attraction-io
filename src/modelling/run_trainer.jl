@@ -88,14 +88,14 @@ function main(attraction::Attraction)
         model_path = joinpath(temp_folder, "model_$(wt_lower).bst")
 
         if !isfile(input_path)
-            @warn("⚠️ Skipping $wait_type — input file not found: $input_path")
+            # @warn("⚠️ Skipping $wait_type — input file not found: $input_path")
             continue
         end
 
         df = CSV.read(input_path, DataFrame)
 
         if "meta_wait_time_type" ∉ names(df)
-            @warn("⚠️ Skipping $wait_type — no 'meta_wait_time_type' column in input file.")
+            # @warn("⚠️ Skipping $wait_type — no 'meta_wait_time_type' column in input file.")
             continue
         end
 
@@ -103,7 +103,7 @@ function main(attraction::Attraction)
         df = filter(row -> lowercase(row.meta_wait_time_type) == lowercase(wait_type), df)
 
         if isempty(df)
-            @warn("⚠️ Skipping $wait_type — no matching rows for 'meta_wait_time_type == $wait_type'")
+            # @warn("⚠️ Skipping $wait_type — no matching rows for 'meta_wait_time_type == $wait_type'")
             continue
         end
 

@@ -50,7 +50,7 @@ function main()
     required_thresh = ["entity_code", "cl1_max", "cl9_max"]
 
     if !all(x -> x in names(df_avgs), required_avgs) || !all(x -> x in names(df_thresh), required_thresh)
-        # @warn"❌ Missing required columns in input files.")
+        # @warn"❌ Missing required columns in input files."
         return
     end
 

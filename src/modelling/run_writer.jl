@@ -40,7 +40,7 @@ function write_standby_site_files(attraction::Attraction, output_folder::String)
     file_posted = joinpath(output_folder, "forecasts_$(entity_code)_posted.csv")
     file_actual = joinpath(output_folder, "forecasts_$(entity_code)_actual.csv")
     if !(isfile(file_posted) && isfile(file_actual))
-        @warn "⚠️ Missing posted or actual forecast file for $entity_code — skipping standby site output."
+        # @warn "⚠️ Missing posted or actual forecast file for $entity_code — skipping standby site output."
         return
     end
 
@@ -74,7 +74,7 @@ function write_standby_site_files(attraction::Attraction, output_folder::String)
         CSV.write(path, site_df)
         s3_path = "s3://touringplans_stats/stats_work/attraction-io/site_ingest/$(filename)"
         upload_file_to_s3(path, s3_path)
-        @info "💾 Wrote and uploaded standby site forecast chunk: $path → $s3_path"
+        # @info "💾 Wrote and uploaded standby site forecast chunk: $path → $s3_path"
     end
 end
 
@@ -84,7 +84,7 @@ function write_priority_site_files(attraction::Attraction, output_folder::String
     tz = get_site_timezone(property)
     file_priority = joinpath(output_folder, "forecasts_$(entity_code)_priority.csv")
     if !isfile(file_priority)
-        @warn "⚠️ No priority forecast file for $entity_code — skipping priority site output."
+        # @warn "⚠️ No priority forecast file for $entity_code — skipping priority site output."
         return
     end
 
@@ -114,12 +114,12 @@ function write_priority_site_files(attraction::Attraction, output_folder::String
         CSV.write(path, site_df)
         s3_path = "s3://touringplans_stats/stats_work/attraction-io/site_ingest/$(filename)"
         upload_file_to_s3(path, s3_path)
-        @info "💾 Wrote and uploaded priority site forecast chunk: $path → $s3_path"
+        # @info "💾 Wrote and uploaded priority site forecast chunk: $path → $s3_path"
     end
 end
 
 function main(attraction::Attraction, output_folder::String)
-    @info "📝 Formatting final site outputs for $(attraction.code) ($(attraction.queue_type))"
+    # @info "📝 Formatting final site outputs for $(attraction.code) ($(attraction.queue_type))"
     if attraction.queue_type == "standby"
         write_standby_site_files(attraction, output_folder)
     elseif attraction.queue_type == "priority"
@@ -127,7 +127,7 @@ function main(attraction::Attraction, output_folder::String)
     else
         error("❌ Unknown queue_type: $(attraction.queue_type). Must be 'standby' or 'priority'")
     end
-    @info "✅ All site forecast files written and uploaded for $(attraction.code)"
+    # @info "✅ All site forecast files written and uploaded for $(attraction.code)"
 end
 
 # Usage (example):

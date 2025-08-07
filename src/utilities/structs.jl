@@ -16,7 +16,7 @@ struct Attraction
 end
 
 function get_wait_time_types(queue_type::String)::Vector{String}
-    uppercase(queue_type) == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
+    uppercase(queue_type) == "PRIORITY" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 end
 
 Base.getproperty(a::Attraction, ::Val{:wait_time_types}) = get_wait_time_types(a.queue_type)

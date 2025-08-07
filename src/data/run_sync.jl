@@ -15,7 +15,7 @@ for wt in getproperty(ATTRACTION, Val(:wait_time_types))
     filename = "wait_times_$(uppercase(ATTRACTION.code))_$(lowercase(wt)).csv"
     s3_path = "s3://touringplans_stats/stats_work/attraction-io/wait_times/$filename"
     local_folder = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3")
-    local_file = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3", "wait_times_$(lowercase(wt)).csv")
+    local_file = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3", "wait_times_$(uppercase(ATTRACTION.code))_$(lowercase(wt)).csv")
 
     mkpath(local_folder)
 
@@ -34,7 +34,7 @@ for wt in getproperty(ATTRACTION, Val(:wait_time_types))
     filename = "forecasts_$(uppercase(ATTRACTION.code))_$(lowercase(wt)).csv"
     s3_path = "s3://touringplans_stats/stats_work/attraction-io/forecasts/$filename"
     local_folder = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3")
-    local_file = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3", "forecasts_$(lowercase(wt)).csv")
+    local_file = joinpath(LOC_WORK, uppercase(ATTRACTION.code), "already_on_s3", "forecasts_$(uppercase(ATTRACTION.code))_$(lowercase(wt)).csv")
 
     mkpath(local_folder)
 
