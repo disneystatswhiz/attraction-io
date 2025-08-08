@@ -74,7 +74,7 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=3)
     end
 
     # >>> ADD THIS LINE to run ONLY the test entity
-    entities = intersect(entities, ["AK07"])  # Replace "AK07" with your desired entity
+    entities = intersect(entities, ["AK07", "DL01", "IA69"])  # Replace "AK07" with your desired entity
     log_header("Running job for test entity: $(entities)")
     # >>> ADD THIS LINE to run ONLY the test entity
 
