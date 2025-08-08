@@ -39,7 +39,7 @@ function sync_wait_times(entity_id::String, property::String, type::String)
         s3path = "$s3_base/fastpass_times/$property/"
         localpath = joinpath(LOC_INPUT, "wait_times", "priority", property)
     else
-        @error("❌ Unsupported type: $type. Use 'standby' or 'priority'.")
+        # @error("❌ Unsupported type: $type. Use 'standby' or 'priority'.")
     end
 
     mkpath(localpath)

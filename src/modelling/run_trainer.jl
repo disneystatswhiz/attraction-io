@@ -18,7 +18,7 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
     df_score = filter(row -> ismissing(row.target) && row.meta_observed_at > ZonedDateTime(now(), tz"UTC"), df)
 
     if isempty(df_train)
-        @error("❌ No training data for $entity_code ($wait_type)")
+        # @error("❌ No training data for $entity_code ($wait_type)")
         return nothing
     end
 

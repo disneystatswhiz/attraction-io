@@ -3,7 +3,7 @@
 # ===================================================================================== #
 
 #if length(ARGS) < 4
-#    @error "❌ ARGS missing. Usage: julia main_runner.jl <entity> <park> <property> <type>"
+#    # @error "❌ ARGS missing. Usage: julia main_runner.jl <entity> <park> <property> <type>"
 #    exit(1)
 #end
 

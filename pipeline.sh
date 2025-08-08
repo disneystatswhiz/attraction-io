@@ -2,6 +2,8 @@
 
 # Set up environment
 cd /home/ubuntu/attraction-io
+rm -rf input logs output temp work
+mkdir -p input logs output temp work
 
 # Pull latest code from GitHub
 git pull
