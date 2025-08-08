@@ -57,7 +57,6 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=3)
         queue_type = "standby"
     elseif typ == "priority"
         if prop == "uor"
-            # UOR has no priority job—skip it.
             return
         end
         entities = get_priority_entities(prop)
@@ -65,6 +64,9 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=3)
     else
         return
     end
+
+    # >>> ADD THIS LINE to run ONLY the test entity
+    entities = intersect(entities, ["AK07"])  # Replace "AK07" with your desired entity
 
     if isempty(entities)
         return
