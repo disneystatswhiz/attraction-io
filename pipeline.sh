@@ -13,4 +13,4 @@ git pull
 julia --project=. scheduler/run_jobs.jl
 
 # Auto-shutdown after run (stops the instance to save cost, not terminate)
-# sudo shutdown -h now
+sudo shutdown -h now
