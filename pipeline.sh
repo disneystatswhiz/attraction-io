@@ -6,6 +6,7 @@ rm -rf input output temp work
 mkdir -p input output temp work logs
 
 # Pull latest code from GitHub
+git reset --hard HEAD
 git pull
 
 # Run Julia pipeline (change path to your Julia bin if not in PATH)
