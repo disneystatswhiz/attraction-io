@@ -8,7 +8,7 @@ start_time_pipeline = time_ns()
 
 # Quick note for log test
 println("--------------------------------------------------------------------------------")
-println("Starting pipeline at $(Dates.format(start_time_pipeline, "yyyy-mm-dd HH:MM:SS"))")
+println("Starting pipeline at $(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))")
 println("--------------------------------------------------------------------------------")
 
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
