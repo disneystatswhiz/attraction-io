@@ -61,6 +61,11 @@ function main()
         return
     end
 
+    if ATTRACTION.queue_type == "priority"
+        # @info("🛑 Skipping forecasts_thresholds.csv for priority queue.")
+        return
+    end
+
     df = CSV.read(input_path, DataFrame)
     required_cols = ["entity_code", "avg_posted_11am_to_5pm"]
     if !all(x -> x in names(df), required_cols)

@@ -28,6 +28,7 @@ end
 function load_observed(path::String)::DataFrame
     df = CSV.read(path, DataFrame) |> clean_reporting_columns
     filter!(:wait_time_minutes => !ismissing, df)
+    filter!(:wait_time_minutes => x -> x < 8888, df) # Filter out the sold-out values for priority queues
     df[!, :observed_at] = parse_zoneddatetimes_simple(df.observed_at)
     df[!, :observed_at_r15] = round_datetime.(df.observed_at, 15)
     select!(df, Not(:wgt_geo_decay))

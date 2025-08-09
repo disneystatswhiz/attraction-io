@@ -60,6 +60,12 @@ function main(outpath::String)
         return
     end
 
+    # Check if this is a priority queue
+    if ATTRACTION.queue_type == "priority"
+        # @info("🛑 Skipping forecasts_dailyavgs.csv for priority queue.")
+        return
+    end
+
     compute_daily_averages(outpath)
 end
 

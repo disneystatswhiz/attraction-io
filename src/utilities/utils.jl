@@ -216,34 +216,57 @@ end
 # - pattern   → substring to match (e.g. entity_code like "ak07")      #
 # - base_dir  → where to search (default: current working dir)         #
 # --------------------------------------------------------------------- #
-function cleanup_folders(pattern::String; base_dir::String = pwd())
-    matches = []
-    pattern_lc = lowercase(pattern)
+function cleanup_folders(pattern::String; base_dir::String = pwd(), delete_files::Bool = true)
+    pat = lowercase(pattern)
+    files_to_del = String[]
+    dirs_to_del  = String[]
 
+    # Collect matches
     for (root, dirs, files) in walkdir(base_dir)
-        for name in vcat(dirs, files)
-            if occursin(pattern_lc, lowercase(name))
-                fullpath = joinpath(root, name)
-                push!(matches, fullpath)
+        if delete_files
+            for name in files
+                occursin(pat, lowercase(name)) && push!(files_to_del, joinpath(root, name))
+            end
+        end
+        for name in dirs
+            occursin(pat, lowercase(name)) && push!(dirs_to_del, joinpath(root, name))
+        end
+    end
+
+    # Dedupe
+    files_to_del = unique(files_to_del)
+    dirs_to_del  = unique(dirs_to_del)
+
+    # 1) Delete files
+    if delete_files
+        for p in files_to_del
+            if isfile(p)
+                try
+                    rm(p; force=true)
+                    # @info "🧹 Deleted file: $p"
+                catch e
+                    # @warn "⚠️ Could not delete file $p — $(e.msg)"
+                end
             end
         end
     end
 
-    for path in matches
-        try
-            if isdir(path)
-                rm(path; recursive=true)
-                # @info "🧹 Deleted folder: $path"
-            else
-                rm(path)
-                # @info "🧹 Deleted file: $path"
+    # 2) Delete directories (deepest first)
+    # Depth = number of path separators; handles Windows and POSIX.
+    depth(p) = count(c -> c == '/' || c == '\\', p)
+    sort!(dirs_to_del, by=depth, rev=true)
+
+    for p in dirs_to_del
+        if isdir(p)
+            try
+                rm(p; recursive=true, force=true)
+                # @info "🧹 Deleted folder: $p"
+            catch e
+                # @warn "⚠️ Could not delete folder $p — $(e.msg)"
             end
-        catch e
-            # @warn "⚠️  Could not delete $path — $(e.msg)"
         end
     end
 end
-
 
 
 # --------------------------------------------------------------------- #

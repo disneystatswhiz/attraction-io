@@ -32,6 +32,12 @@ function main()
     input_thresh = joinpath(temp, "forecasts_thresholds.csv")
     output_path = joinpath(temp, "forecasts_dailyavgs_w_levels.csv")
 
+    # If queue_type is priority, skip this step
+    if ATTRACTION.queue_type == "priority"
+        # @info("🛑 Skipping forecasts_dailyavgs_w_levels.csv for priority queue.")
+        return
+    end
+
     if !isfile(input_avgs) || !isfile(input_thresh)
         # @warn("❌ Missing required input files.")
         return

@@ -7,10 +7,10 @@
 #    exit(1)
 #end
 
-const ENTITY_CODE = "ca109" #lowercase(ARGS[1])
-const PARK        = "ca" #lowercase(ARGS[2])
-const PROPERTY    = "dlr" #lowercase(ARGS[3])
-const QUEUE_TYPE  = "standby" #lowercase(ARGS[4])
+const ENTITY_CODE = "ak15" #lowercase(ARGS[1])
+const PARK        = "ak" #lowercase(ARGS[2])
+const PROPERTY    = "wdw" #lowercase(ARGS[3])
+const QUEUE_TYPE  = "priority" #lowercase(ARGS[4])
 
 # ===================================================================================== #
 # ------------------------- Initial Setup and Modules --------------------------------- #
@@ -57,7 +57,6 @@ include(joinpath(ROOT, "src", "calendar", "run_assign_levels.jl"))
 # ----------------------------- Reporting Outputs ------------------------------------- #
 # ===================================================================================== #
 
-include(joinpath(ROOT, "src", "data", "run_sync.jl"))  # Refresh before reporting
 include(joinpath(ROOT, "src", "reporting", "run_descriptives.jl"))
 include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
 
