@@ -1,16 +1,24 @@
 #!/bin/bash
+set -euo pipefail
 
-# Set up environment
 cd /home/ubuntu/attraction-io
 rm -rf input output temp work
 mkdir -p input output temp work logs
 
-# Pull latest code from GitHub
 git reset --hard HEAD
 git pull
 
-# Run Julia pipeline (change path to your Julia bin if not in PATH)
-julia --project=. scheduler/run_jobs.jl
+stop_instance() {
+  TOKEN=$(curl -sS -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  IID=$(curl -sS -H "X-aws-ec2-metadata-token: $TOKEN" \
+    http://169.254.169.254/latest/meta-data/instance-id)
+  REG=$(curl -sS -H "X-aws-ec2-metadata-token: $TOKEN" \
+    http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')
+  aws ec2 stop-instances --instance-ids "$IID" --region "$REG" || true
+}
 
-# Auto-shutdown after run (stops the instance to save cost, not terminate)
-sudo shutdown -h now
+trap 'sleep 5; stop_instance' EXIT
+
+julia --project=. scheduler/run_jobs.jl
+sleep 10   # let IO flush (optional)

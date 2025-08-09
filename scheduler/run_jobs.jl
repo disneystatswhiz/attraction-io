@@ -120,12 +120,16 @@ end
 # -------------------------- Main Polling Loop for Job Launching ---------------------- #
 # ===================================================================================== #
 
+#pending = Set([
+#    ("wdw", "standby"),
+#    ("wdw", "priority"),
+#    ("dlr", "standby"),
+#    ("dlr", "priority"),
+#    ("uor", "standby"),
+#])
 pending = Set([
-    ("wdw", "standby"),
     ("wdw", "priority"),
-    ("dlr", "standby"),
     ("dlr", "priority"),
-    ("uor", "standby"),
 ])
 
 job_tasks = Dict{Tuple{String,String}, Task}()
