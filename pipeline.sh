@@ -11,7 +11,6 @@ git reset --hard HEAD
 git pull
 
 # --- run your pipeline ---
-echo "Starting pipeline at $(date)"
 julia --project=. scheduler/run_jobs.jl
 
 # --- optional pause to flush logs ---
