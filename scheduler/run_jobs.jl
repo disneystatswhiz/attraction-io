@@ -37,7 +37,9 @@ function get_standby_entities(prop::String)::Vector{String}
 
     df = CSV.read(joinpath(local_dir, "current_wait.csv"), DataFrame)
     filter!(row -> !ismissing(row.submitted_posted_time) || !ismissing(row.submitted_actual_time), df)
-    return unique(df.entity_code)
+    entities = unique(df.entity_code)
+    # Exclude "AK07" (dev/test case)
+    return filter(x -> x != "AK07", entities)
 end
 
 function get_priority_entities(prop::String)::Vector{String}

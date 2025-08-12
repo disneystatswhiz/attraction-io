@@ -73,6 +73,8 @@ function main()
     if synced.exists
         df_prior = CSV.read(synced.local_file, DataFrame)
         df_combined = sort(vcat(df_prior, df), [:entity_code, :id_park_day_id, :effective_date], rev=true)
+        # Keep only rows where effective_date < id_park_day_id
+        df_combined = filter(row -> row.effective_date < row.id_park_day_id, df_combined)
         df_combined = combine(groupby(df_combined, [:entity_code, :id_park_day_id])) do sub
             first(sub, 1)  # keep only most recent effective_date per entity/date
         end

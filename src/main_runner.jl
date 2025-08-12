@@ -52,12 +52,12 @@ include(joinpath(ROOT, "src", "modelling", "run_predictions.jl"))
 include(joinpath(ROOT, "src", "calendar", "run_dailyavgs.jl"))
 include(joinpath(ROOT, "src", "calendar", "run_thresholds.jl"))
 include(joinpath(ROOT, "src", "calendar", "run_assign_levels.jl"))
+include(joinpath(ROOT, "src", "calendar", "run_observed_dailyavgs.jl"))
 
 # ===================================================================================== #
 # ----------------------------- Reporting Outputs ------------------------------------- #
 # ===================================================================================== #
 
-# include(joinpath(ROOT, "src", "data", "run_sync.jl"))  # Refresh before reporting - dont think this does anything, so I commented it out
 include(joinpath(ROOT, "src", "reporting", "run_descriptives.jl"))
 include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
 
@@ -68,6 +68,8 @@ include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
 elapsed_modelling = (time_ns() - start_time_pipeline) / 1e9
 log_header("✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes.")
 
-cleanup_folders(ATTRACTION.code, base_dir=ROOT)
+if ATTRACTION.code != "AK07"
+    cleanup_folders(ATTRACTION.code, base_dir=ROOT)
+end
 # ====================================================================================== #
 # ----------------------------- End of Main Runner Script ------------------------------ #
