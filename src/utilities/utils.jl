@@ -295,3 +295,26 @@ end
 function round_datetime(dt::Any, rounder::Int)
     throw(ArgumentError("round_datetime requires a ZonedDateTime input. Got $(typeof(dt))"))
 end
+
+# --------------------------------------------------------------------- #
+# Get last modified timestamp of an S3 object
+# --------------------------------------------------------------------- #
+function get_last_modified_s3_ts(bucket::String, key::String)::DateTime
+    # Example output: 2025-08-14T12:34:56.000Z  (ISO 8601)
+    cmd = `aws s3api head-object --bucket $bucket --key $key --query LastModified --output text`
+    iso = strip(read(cmd, String))
+    # Normalize timezone: replace trailing 'Z' with '+00:00' for robust parsing
+    iso_z = endswith(iso, "Z") ? replace(iso, "Z" => "+00:00") : iso
+    # Accept fractional seconds with 0–9 digits; try a couple common formats
+    iso_z = endswith(iso, "Z") ? replace(iso, "Z" => "+00:00") : iso
+    # Accept fractional seconds with 0–9 digits; try a couple common formats
+    for fmt in (dateformat"yyyy-mm-ddTHH:MM:SSzzzz",
+                dateformat"yyyy-mm-ddTHH:MM:SS.szzzz",
+                dateformat"yyyy-mm-ddTHH:MM:SS.ssszzzz")
+        try
+            return DateTime(iso_z, fmt)  # This is UTC because tz is +00:00
+        catch
+        end
+    end
+    error("Could not parse LastModified ISO timestamp: $iso")
+end

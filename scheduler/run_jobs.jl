@@ -16,7 +16,7 @@ flush(stdout)
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
 
 const POLL_INTERVAL   = Minute(10)
-const CUT_OFF_TIME    = Time(09, 00)
+const CUT_OFF_TIME    = Time(17, 00)
 const BUCKET          = "touringplans_stats"
 const REFRESH_WINDOW  = Hour(12)               # <— NEW: rolling window
 
