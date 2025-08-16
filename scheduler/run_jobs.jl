@@ -110,6 +110,8 @@ function get_standby_entities(prop::String)::Vector{String}
     return ents
 end
 
+# Replace your current get_priority_entities with this:
+
 function get_priority_entities(prop::String)::Vector{String}
     if prop == "uor" && !ENABLE_UOR_PRIORITY
         @info "UOR priority disabled; skipping entity discovery" prop
@@ -123,18 +125,58 @@ function get_priority_entities(prop::String)::Vector{String}
     s3_path = "s3://$BUCKET/export/fastpass_times/$prop"
     sync_from_s3_folder(s3_path, local_dir; exclude=["*"], include=["current_fastpass.csv"])
 
-    df = CSV.read(joinpath(local_dir, "current_fastpass.csv"), DataFrame)
+    f = joinpath(local_dir, "current_fastpass.csv")
+    if !isfile(f)
+        @warn "current_fastpass.csv not found after sync" prop s3_path
+        return String[]
+    end
 
-    colidx = findfirst(n -> n === :FATTID || n === "FATTID", names(df))
-    colidx === nothing && error("Required column 'FATTID' not found in current_fastpass.csv; columns=$(names(df))")
+    df = CSV.read(f, DataFrame)
 
-    vals = String.(strip.(String.(coalesce.(df[!, colidx], ""))))
-    ents = unique(filter(!isempty, vals))
-    ents = filter_by_prop_prefix(ents, prop)
+    # --- Deep visibility on headers / size ---
+    headers = names(df)
+    @info "Priority feed loaded" prop rows=nrow(df) cols=length(headers)
+    @info "Priority headers (repr)" headers=repr(headers)
 
-    @info "Discovered entities" prop queue_type="priority" count=length(ents) sample=first(ents, min(5, length(ents)))
+    if nrow(df) == 0
+        @warn "Priority feed has zero rows" prop file=f
+        return String[]
+    end
+
+    # --- Robust header match for FATTID (handles BOM/space) ---
+    normalize = s -> uppercase(strip(replace(String(s), '\ufeff' => "")))
+    target    = "FATTID"
+    col = nothing
+    for h in headers
+        if normalize(h) == target
+            col = h
+            break
+        end
+    end
+    if col === nothing
+        @error "FATTID column not found after normalization" prop normalized_headers=map(normalize, headers)
+        return String[]
+    end
+
+    # --- Extract raw values + quick diagnostics ---
+    raw = df[!, col]
+    miss_ct = count(ismissing, raw)
+    nonmiss = collect(skipmissing(raw))
+    preview = map(string, nonmiss[1:min(end, 10)])
+    @info "Priority ID diagnostics" column=String(col) missing=miss_ct nonmissing=length(nonmiss) preview=preview
+
+    # Coerce → String, strip, drop empties
+    vals = String.(strip.(String.(coalesce.(raw, ""))))
+    ents_pre = unique(filter(!isempty, vals))
+    @info "IDs before prefix filter" count=length(ents_pre) sample=first(ents_pre, min(5, length(ents_pre)))
+
+    # Optional: filter by property prefix
+    ents = filter_by_prop_prefix(ents_pre, prop)
+    @info "IDs after prefix filter"  count=length(ents)     sample=first(ents,     min(5, length(ents)))
+
     return ents
 end
+
 
 # ===================================================================================== #
 # Job Launcher
@@ -156,6 +198,9 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=MAX_PARALLEL)
         entity_s = String(entity)
         park     = derive_park(entity_s, prop)
         cmd      = `julia --project=. src/main_runner.jl $entity_s $park $prop $typ`
+
+        # NEW: log the launch
+        @info "Launching entity job" entity=entity_s park=park prop=prop queue_type=typ cmd=cmd
 
         process = run(cmd; wait=false)
         push!(active_jobs, process)
