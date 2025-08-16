@@ -1,16 +1,6 @@
 # ===================================================================================== #
-#            Attraction‑IO Parallel Polling Launcher (Minimal‑Fix Reuse)               #
+#            Attraction-IO Parallel Polling Launcher (Relative Cutoff Version)          #
 # ===================================================================================== #
-# This keeps your original structure and function names, but fixes the issues we saw:
-# - Only the outer loop checks freshness; getters never re-check (avoid double-gating)
-# - Priority uses FATTID reliably (Symbol/String tolerant) and logs discovery
-# - Standby uses entity_code and logs discovery
-# - Local sync dirs are wiped per call to avoid cross‑park bleed
-# - Park derivation is robust; entities coerced to String (no SubString issues)
-# - main_setup lockfile is per‑day (not once‑ever)
-# - Poll loop is unchanged, but now each group launches only once and logs cleanly
-# ===================================================================================== #
-
 using DataFrames, Dates, CSV, Logging, Random
 
 # --- Paths & runtime context --------------------------------------------------------- #
@@ -24,17 +14,18 @@ println("-----------------------------------------------------------------------
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
 
 # --- Tunables ----------------------------------------------------------------------- #
-const POLL_INTERVAL   = Minute(10)
-const CUT_OFF_TIME    = Time(09, 00)
-const REFRESH_WINDOW  = Hour(12)
-const BUCKET          = "touringplans_stats"
-const MAX_PARALLEL    = 3
-
-# Optional: allow/deny UOR priority
+const POLL_INTERVAL     = Minute(10)     # poll every 10 minutes
+const MAX_POLL_MINUTES  = 600            # stop after 600 minutes (10 hours)
+const REFRESH_WINDOW    = Hour(12)
+const BUCKET            = "touringplans_stats"
+const MAX_PARALLEL      = 3
 const ENABLE_UOR_PRIORITY = false
 
+# Compute relative deadline
+const POLL_DEADLINE_UTC = now(UTC) + Minute(MAX_POLL_MINUTES)
+
 # ===================================================================================== #
-# Freshness helper (unchanged from yours)
+# Freshness helper
 # ===================================================================================== #
 
 function refreshed_within(bucket::String, key::String; window::Period=REFRESH_WINDOW)::Bool
@@ -42,11 +33,19 @@ function refreshed_within(bucket::String, key::String; window::Period=REFRESH_WI
     try
         lm = get_last_modified_s3_ts(bucket, key)
         age = now_utc - lm
+        @info "Freshness check (ts)" key last_modified_utc=lm now_utc=now_utc age=age window=window
         return (age ≥ Second(0)) && (age ≤ window)
     catch err
-        @warn "Falling back to date-only last_modified check; add get_last_modified_s3_ts for robustness" key
-        lm_date = get_last_modified_s3(bucket, key)
-        return lm_date == Date(now_utc)
+        @warn "Timestamp check failed; falling back to date-only" key error=err
+        try
+            lm_date = get_last_modified_s3(bucket, key)
+            same_day = lm_date == Date(now_utc)
+            @info "Freshness check (date-only)" key last_modified_date=lm_date today_utc=Date(now_utc) same_day=same_day
+            return same_day
+        catch err2
+            @error "Both freshness checks failed; launching defensively" key error=err2
+            return true
+        end
     end
 end
 
@@ -54,13 +53,11 @@ end
 # Utilities
 # ===================================================================================== #
 
-# Robust park derivation (AK07, MK139, CA119, IA06, etc.)
 @inline function derive_park(entity::AbstractString, fallback_prop::AbstractString)
     m = match(r"^[A-Za-z]{2}", entity)
     return m === nothing ? lowercase(fallback_prop) : lowercase(m.match)
 end
 
-# Light sanity map to avoid cross‑park mixes (optional; adjust as needed)
 const PARK_PREFIXES = Dict(
     "wdw" => Set(["AK", "MK", "EP", "HS"]),
     "dlr" => Set(["DL", "CA"]),
@@ -86,11 +83,10 @@ function filter_by_prop_prefix(entities::AbstractVector{<:AbstractString}, prop:
 end
 
 # ===================================================================================== #
-# Entity discovery (single‑source of truth: no freshness checks inside)
+# Entity discovery
 # ===================================================================================== #
 
 function get_standby_entities(prop::String)::Vector{String}
-    # Clean per‑prop scratch to avoid stale files
     local_dir = joinpath(LOC_TEMP, "$(prop)_standby")
     isdir(local_dir) && rm(local_dir; force=true, recursive=true)
     mkpath(local_dir)
@@ -99,7 +95,6 @@ function get_standby_entities(prop::String)::Vector{String}
     sync_from_s3_folder(s3_path, local_dir; exclude=["*"], include=["current_wait.csv"])
 
     df = CSV.read(joinpath(local_dir, "current_wait.csv"), DataFrame)
-    # Keep your filter: we only care about rows with a submitted wait
     filter!(row -> !ismissing(row.submitted_posted_time) || !ismissing(row.submitted_actual_time), df)
 
     if "entity_code" ∉ names(df)
@@ -107,9 +102,8 @@ function get_standby_entities(prop::String)::Vector{String}
     end
 
     vals = String.(strip.(String.(coalesce.(df[!, "entity_code"], ""))))
-
     ents = unique(filter(!isempty, vals))
-    ents = filter(!=("AK07"), ents)                 # exclude dev/test
+    ents = filter(!=("AK07"), ents)
     ents = filter_by_prop_prefix(ents, prop)
 
     @info "Discovered entities" prop queue_type="standby" count=length(ents) sample=first(ents, min(5, length(ents)))
@@ -131,7 +125,6 @@ function get_priority_entities(prop::String)::Vector{String}
 
     df = CSV.read(joinpath(local_dir, "current_fastpass.csv"), DataFrame)
 
-    # Accept either Symbol or String column name
     colidx = findfirst(n -> n === :FATTID || n === "FATTID", names(df))
     colidx === nothing && error("Required column 'FATTID' not found in current_fastpass.csv; columns=$(names(df))")
 
@@ -144,19 +137,12 @@ function get_priority_entities(prop::String)::Vector{String}
 end
 
 # ===================================================================================== #
-# Job Launcher (parallel per entity) — unchanged structure
+# Job Launcher
 # ===================================================================================== #
 
 function run_one_job(prop::String, typ::String; max_parallel::Int=MAX_PARALLEL)
-    if typ == "standby"
-        entities   = get_standby_entities(prop)
-        queue_type = "standby"
-    elseif typ == "priority"
-        entities   = get_priority_entities(prop)
-        queue_type = "priority"
-    else
-        return
-    end
+    entities = (typ == "standby") ? get_standby_entities(prop) :
+               (typ == "priority") ? get_priority_entities(prop) : String[]
 
     if isempty(entities)
         @info "No entities discovered; nothing to launch" prop typ
@@ -164,12 +150,12 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=MAX_PARALLEL)
     end
 
     shuffle!(entities)
-
     active_jobs = Vector{Base.Process}()
+
     for entity in entities
         entity_s = String(entity)
         park     = derive_park(entity_s, prop)
-        cmd      = `julia --project=. src/main_runner.jl $entity_s $park $prop $queue_type`
+        cmd      = `julia --project=. src/main_runner.jl $entity_s $park $prop $typ`
 
         process = run(cmd; wait=false)
         push!(active_jobs, process)
@@ -199,7 +185,7 @@ let lockfile = joinpath(ROOT, "temp", "main_setup_done_$(Dates.format(today(), "
 end
 
 # ===================================================================================== #
-# Polling loop — unchanged shape, but single freshness gate
+# Polling loop — relative cutoff
 # ===================================================================================== #
 
 pending = Set([
@@ -212,7 +198,7 @@ pending = Set([
 
 job_tasks = Dict{Tuple{String,String}, Task}()
 
-while !isempty(pending) && Time(now()) ≤ CUT_OFF_TIME
+while !isempty(pending) && now(UTC) ≤ POLL_DEADLINE_UTC
     for (prop, typ) in copy(pending)
         key = (typ == "standby") ?
             "export/wait_times/$prop/current_wait.csv" :
@@ -230,14 +216,16 @@ while !isempty(pending) && Time(now()) ≤ CUT_OFF_TIME
             delete!(pending, (prop, typ))
         else
             last_mod = try get_last_modified_s3_ts(BUCKET, key) catch; nothing end
-            @info "Not fresh yet; will poll again" prop typ key window=REFRESH_WINDOW last_modified_utc=last_mod now_utc=now(UTC)
+            mins_left = round(Int, (POLL_DEADLINE_UTC - now(UTC)) / Minute(1))
+            @info "Not fresh yet; will poll again" prop typ key window=REFRESH_WINDOW \
+                  last_modified_utc=last_mod now_utc=now(UTC) minutes_left=mins_left
         end
     end
-    isempty(pending) || sleep(Dates.value(POLL_INTERVAL) * 60)  # sleep seconds
+    isempty(pending) || sleep(Dates.value(POLL_INTERVAL) * 60)
 end
 
 if !isempty(pending)
-    @warn "Some property/types never became fresh within window before CUT_OFF_TIME" remaining=collect(pending)
+    @warn "Stopped polling because deadline hit; some groups never became fresh" remaining=collect(pending)
 end
 
 # ===================================================================================== #
