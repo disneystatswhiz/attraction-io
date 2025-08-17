@@ -33,17 +33,17 @@ function refreshed_within(bucket::String, key::String; window::Period=REFRESH_WI
     try
         lm = get_last_modified_s3_ts(bucket, key)
         age = now_utc - lm
-        @info "Freshness check (ts)" key last_modified_utc=lm now_utc=now_utc age=age window=window
+        # @info "Freshness check (ts)" key last_modified_utc=lm now_utc=now_utc age=age window=window
         return (age ≥ Second(0)) && (age ≤ window)
     catch err
-        @warn "Timestamp check failed; falling back to date-only" key error=err
+        # @warn "Timestamp check failed; falling back to date-only" key error=err
         try
             lm_date = get_last_modified_s3(bucket, key)
             same_day = lm_date == Date(now_utc)
-            @info "Freshness check (date-only)" key last_modified_date=lm_date today_utc=Date(now_utc) same_day=same_day
+            # @info "Freshness check (date-only)" key last_modified_date=lm_date today_utc=Date(now_utc) same_day=same_day
             return same_day
         catch err2
-            @error "Both freshness checks failed; launching defensively" key error=err2
+            # @error "Both freshness checks failed; launching defensively" key error=err2
             return true
         end
     end
@@ -77,7 +77,7 @@ function filter_by_prop_prefix(entities::AbstractVector{<:AbstractString}, prop:
         end
     end
     if !isempty(dropped)
-        @warn "Filtered out entities not matching prop prefix" prop dropped_sample=first(dropped, min(5, length(dropped)))
+        # @warn "Filtered out entities not matching prop prefix" prop dropped_sample=first(dropped, min(5, length(dropped)))
     end
     return kept
 end
@@ -106,7 +106,7 @@ function get_standby_entities(prop::String)::Vector{String}
     ents = filter(!=("AK07"), ents)
     ents = filter_by_prop_prefix(ents, prop)
 
-    @info "Discovered entities" prop queue_type="standby" count=length(ents) sample=first(ents, min(5, length(ents)))
+    # @info "Discovered entities" prop queue_type="standby" count=length(ents) sample=first(ents, min(5, length(ents)))
     return ents
 end
 
@@ -114,7 +114,7 @@ end
 
 function get_priority_entities(prop::String)::Vector{String}
     if prop == "uor" && !ENABLE_UOR_PRIORITY
-        @info "UOR priority disabled; skipping entity discovery" prop
+        # @info "UOR priority disabled; skipping entity discovery" prop
         return String[]
     end
 
@@ -127,7 +127,7 @@ function get_priority_entities(prop::String)::Vector{String}
 
     f = joinpath(local_dir, "current_fastpass.csv")
     if !isfile(f)
-        @warn "current_fastpass.csv not found after sync" prop s3_path
+        # @warn "current_fastpass.csv not found after sync" prop s3_path
         return String[]
     end
 
@@ -135,11 +135,11 @@ function get_priority_entities(prop::String)::Vector{String}
 
     # --- Deep visibility on headers / size ---
     headers = names(df)
-    @info "Priority feed loaded" prop rows=nrow(df) cols=length(headers)
-    @info "Priority headers (repr)" headers=repr(headers)
+    # @info "Priority feed loaded" prop rows=nrow(df) cols=length(headers)
+    # @info "Priority headers (repr)" headers=repr(headers)
 
     if nrow(df) == 0
-        @warn "Priority feed has zero rows" prop file=f
+        # @warn "Priority feed has zero rows" prop file=f
         return String[]
     end
 
@@ -154,7 +154,7 @@ function get_priority_entities(prop::String)::Vector{String}
         end
     end
     if col === nothing
-        @error "FATTID column not found after normalization" prop normalized_headers=map(normalize, headers)
+        # @error "FATTID column not found after normalization" prop normalized_headers=map(normalize, headers)
         return String[]
     end
 
@@ -163,16 +163,16 @@ function get_priority_entities(prop::String)::Vector{String}
     miss_ct = count(ismissing, raw)
     nonmiss = collect(skipmissing(raw))
     preview = map(string, nonmiss[1:min(end, 10)])
-    @info "Priority ID diagnostics" column=String(col) missing=miss_ct nonmissing=length(nonmiss) preview=preview
+    # @info "Priority ID diagnostics" column=String(col) missing=miss_ct nonmissing=length(nonmiss) preview=preview
 
     # Coerce → String, strip, drop empties
     vals = String.(strip.(String.(coalesce.(raw, ""))))
     ents_pre = unique(filter(!isempty, vals))
-    @info "IDs before prefix filter" count=length(ents_pre) sample=first(ents_pre, min(5, length(ents_pre)))
+    # @info "IDs before prefix filter" count=length(ents_pre) sample=first(ents_pre, min(5, length(ents_pre)))
 
     # Optional: filter by property prefix
     ents = filter_by_prop_prefix(ents_pre, prop)
-    @info "IDs after prefix filter"  count=length(ents)     sample=first(ents,     min(5, length(ents)))
+    # @info "IDs after prefix filter"  count=length(ents)     sample=first(ents,     min(5, length(ents)))
 
     return ents
 end
@@ -187,7 +187,7 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=MAX_PARALLEL)
                (typ == "priority") ? get_priority_entities(prop) : String[]
 
     if isempty(entities)
-        @info "No entities discovered; nothing to launch" prop typ
+        # @info "No entities discovered; nothing to launch" prop typ
         return
     end
 
@@ -200,7 +200,7 @@ function run_one_job(prop::String, typ::String; max_parallel::Int=MAX_PARALLEL)
         cmd      = `julia --project=. src/main_runner.jl $entity_s $park $prop $typ`
 
         # NEW: log the launch
-        @info "Launching entity job" entity=entity_s park=park prop=prop queue_type=typ cmd=cmd
+        # @info "Launching entity job" entity=entity_s park=park prop=prop queue_type=typ cmd=cmd
 
         process = run(cmd; wait=false)
         push!(active_jobs, process)
@@ -223,9 +223,9 @@ let lockfile = joinpath(ROOT, "temp", "main_setup_done_$(Dates.format(today(), "
         include(joinpath(ROOT, "src", "main_setup.jl"))
         mkpath(dirname(lockfile))
         open(lockfile, "w") do io end
-        @info "main_setup completed for today"
+        # @info "main_setup completed for today"
     else
-        @info "main_setup already completed today; continuing"
+        # @info "main_setup already completed today; continuing"
     end
 end
 
@@ -250,27 +250,27 @@ while !isempty(pending) && now(UTC) ≤ POLL_DEADLINE_UTC
             "export/fastpass_times/$prop/current_fastpass.csv"
 
         if refreshed_within(BUCKET, key)
-            @info "Launching job (fresh within window)" prop typ key window=REFRESH_WINDOW
+            # @info "Launching job (fresh within window)" prop typ key window=REFRESH_WINDOW
             job_tasks[(prop, typ)] = @async try
                 run_one_job(prop, typ; max_parallel=MAX_PARALLEL)
             catch err
                 bt = catch_backtrace()
-                @error "Group task failed" prop typ error=err stacktrace=bt
+                # @error "Group task failed" prop typ error=err stacktrace=bt
                 rethrow()
             end
             delete!(pending, (prop, typ))
         else
             last_mod = try get_last_modified_s3_ts(BUCKET, key) catch; nothing end
             mins_left = round(Int, (POLL_DEADLINE_UTC - now(UTC)) / Minute(1))
-            @info "Not fresh yet; will poll again" prop typ key window=REFRESH_WINDOW \
-                  last_modified_utc=last_mod now_utc=now(UTC) minutes_left=mins_left
+            # @info "Not fresh yet; will poll again" prop typ key window=REFRESH_WINDOW \
+            #    last_modified_utc=last_mod now_utc=now(UTC) minutes_left=mins_left
         end
     end
     isempty(pending) || sleep(Dates.value(POLL_INTERVAL) * 60)
 end
 
 if !isempty(pending)
-    @warn "Stopped polling because deadline hit; some groups never became fresh" remaining=collect(pending)
+    # @warn "Stopped polling because deadline hit; some groups never became fresh" remaining=collect(pending)
 end
 
 # ===================================================================================== #
@@ -282,6 +282,6 @@ for ((prop, typ), task) in job_tasks
 end
 
 elapsed = round((time_ns() - start_time_pipeline) / 1e9 / 60, digits=2)
-@info "Launcher complete" elapsed_min=elapsed
+# @info "Launcher complete" elapsed_min=elapsed
 
 # =============================================== End ================================= #
