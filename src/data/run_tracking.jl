@@ -1,30 +1,34 @@
 # -----------------------------------------------------------
 # run_tracking.jl — Track new wait time files for modeling
 # -----------------------------------------------------------
-using CSV, DataFrames, Glob
+using CSV, DataFrames, Glob, Dates
 
 # -----------------------------------------------------------
-# Get file’s last modified date (as Date, not DateTime)
+# Get file’s last modified timestamp (as DateTime, not Date)
 # -----------------------------------------------------------
-function get_file_date(file::String)::Date
+function get_file_datetime(file::String)::DateTime
     try
-        dt = unix2datetime(stat(file).mtime)
-        return Date(dt)
+        return unix2datetime(stat(file).mtime)
     catch e
-        return Date(1900, 1, 1)
+        return DateTime(1900, 1, 1)
     end
 end
 
 # -----------------------------------------------------------
-# Get latest encoded file date (already processed)
+# Get latest encoded file timestamp (already processed)
 # -----------------------------------------------------------
-function get_latest_encoded_date(attraction::Attraction)::Date
-    latest_dates = Date[]
+function get_latest_encoded_datetime(attraction::Attraction)::DateTime
+    latest_times = DateTime[]
     for wt in getproperty(attraction, Val(:wait_time_types))
-        local_file = joinpath(LOC_WORK, uppercase(attraction.code), "already_on_s3", "wait_times_$(uppercase(attraction.code))_$(lowercase(wt)).csv")
-        isfile(local_file) && push!(latest_dates, get_file_date(local_file))
+        local_file = joinpath(
+            LOC_WORK,
+            uppercase(attraction.code),
+            "already_on_s3",
+            "wait_times_$(uppercase(attraction.code))_$(lowercase(wt)).csv"
+        )
+        isfile(local_file) && push!(latest_times, get_file_datetime(local_file))
     end
-    return isempty(latest_dates) ? Date(1900, 1, 1) : maximum(latest_dates)
+    return isempty(latest_times) ? DateTime(1900, 1, 1) : maximum(latest_times)
 end
 
 # -----------------------------------------------------------
@@ -40,7 +44,7 @@ end
 # Main tracking function
 # -----------------------------------------------------------
 function run_tracking(attraction::Attraction)::Dict{String, Vector{String}}
-    cutoff_date = get_latest_encoded_date(attraction)
+    cutoff_dt = get_latest_encoded_datetime(attraction)
     folder = get_local_sync_folder(attraction)
     all_files = filter(f -> endswith(f, ".csv"), readdir(folder; join=true))
     new_files_by_type = Dict{String, Vector{String}}()
@@ -48,8 +52,8 @@ function run_tracking(attraction::Attraction)::Dict{String, Vector{String}}
         new_files_by_type[wt] = String[]
     end
     for file in all_files
-        fdate = get_file_date(file)
-        if fdate > cutoff_date
+        fdt = get_file_datetime(file)
+        if fdt > cutoff_dt
             for wt in keys(new_files_by_type)
                 push!(new_files_by_type[wt], file)
             end

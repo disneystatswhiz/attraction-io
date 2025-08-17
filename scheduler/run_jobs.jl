@@ -4,12 +4,16 @@
 using DataFrames, Dates, CSV, Logging, Random
 
 # --- Paths & runtime context --------------------------------------------------------- #
-const ROOT                = abspath(joinpath(@__DIR__, ".."))
-const start_time_pipeline = time_ns()
+if !isdefined(@__MODULE__, :ROOT)
+    @eval const ROOT = abspath(joinpath(@__DIR__, ".."))
+end
+if !isdefined(@__MODULE__, :start_time_pipeline)
+    @eval const start_time_pipeline = time_ns()
+end
 
-println("--------------------------------------------------------------------------------")
+println("-----------------------------------------")
 println("Starting pipeline at $(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))")
-println("--------------------------------------------------------------------------------")
+println("-----------------------------------------")
 
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
 
