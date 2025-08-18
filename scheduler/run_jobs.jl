@@ -88,7 +88,7 @@ function get_priority_entities(prop)
     collect(String.(unique(skipmissing(df.FATTID))))
 end
 
-# --- Run group with tiny worker pool (resilient) ------------------------------
+# --- Run group with tiny worker pool (resilient, no log files) ----------------
 function run_group!(entities::Vector{String}, prop::String, typ::String;
                     max_parallel::Int=MAX_PARALLEL_PER_GROUP,
                     max_retries::Int=1)
@@ -99,7 +99,6 @@ function run_group!(entities::Vector{String}, prop::String, typ::String;
     end
     @info "launching group" group="$prop/$typ" total=length(entities)
 
-    # simple shared counters
     successes = Threads.Atomic{Int}(0)
     failures  = Threads.Atomic{Int}(0)
 
@@ -107,7 +106,6 @@ function run_group!(entities::Vector{String}, prop::String, typ::String;
     for e in entities; put!(ch, e); end
     close(ch)
 
-    # tiny helper to run a single entity with retry + logging
     function run_entity(e::String)
         park = derive_park(e, prop)
         cmd  = `julia --project=$ROOT $(joinpath(ROOT,"src","main_runner.jl")) $e $park $prop $typ`
@@ -116,28 +114,25 @@ function run_group!(entities::Vector{String}, prop::String, typ::String;
         while true
             attempt += 1
             try
-                # run but don't crash on nonzero exit; check status yourself
-                status_ok = success(pipeline(cmd; stdout=logfile, stderr=logfile))
-                if status_ok
+                proc = run(ignorestatus(cmd))  # won’t throw on nonzero exit
+                if proc.exitcode == 0
                     Threads.atomic_add!(successes, 1)
                     return
                 else
+                    @warn "entity exited nonzero" group="$prop/$typ" entity=e attempt=attempt code=proc.exitcode
                     if attempt > max_retries
                         Threads.atomic_add!(failures, 1)
                         return
                     end
                 end
             catch err
-                # catch Julia-side exceptions so @sync doesn't rethrow
-                @error "entity threw exception" group="$prop/$typ" entity=e attempt=attempt err=string(err) log=logfile
+                @error "entity threw exception" group="$prop/$typ" entity=e attempt=attempt err=string(err)
                 if attempt > max_retries
                     Threads.atomic_add!(failures, 1)
                     return
                 end
             end
-
-            # simple backoff before retry
-            sleep(min(60, 5 * attempt))
+            sleep(min(60, 5 * attempt))  # simple backoff before retry
         end
     end
 
@@ -145,7 +140,7 @@ function run_group!(entities::Vector{String}, prop::String, typ::String;
         for _ in 1:max_parallel
             @async begin
                 for e in ch
-                    run_entity(e)  # swallow errors per-entity
+                    run_entity(e)
                 end
             end
         end
