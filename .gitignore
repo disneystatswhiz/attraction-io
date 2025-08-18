@@ -30,3 +30,6 @@ __pycache__/
 Thumbs.db
 ehthumbs.db
 desktop.ini
+
+# Local Dashboard Monitoring
+monitor-ec2.sh
