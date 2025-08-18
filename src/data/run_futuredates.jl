@@ -12,7 +12,7 @@ using Dates, CSV, DataFrames, TimeZones
 # It creates 15-minute intervals starting from 6 AM of the current day or the next day
 # if the current time is past 6 AM.
 # ----------------------------------------------------------
-# arg: property::String - The property code (e.g., "WDW", "UOR", "DLR", "USH", "TDL")
+# arg: property::String - The property code (e.g., "WDW", "UOR", "DLR", "USH", "TDR")
 # returns: DataFrame with columns `park_day_id` and `observed_at`
 #          `park_day_id` is the date in YYYY-MM-DD format   
 #          `observed_at` is the DateTime in the property's timezone

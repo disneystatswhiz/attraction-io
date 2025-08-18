@@ -7,7 +7,7 @@ struct Attraction
     code::String
     name::String
     park::String
-    property::String # e.g., "wdw", "dlr", "uor"
+    property::String # e.g., "wdw", "dlr", "uor", "ush", "tdl"
     queue_type::String # e.g., "standby", "priority"
     extinct_on::Union{Date, Nothing}
     is_in_calendar::Bool

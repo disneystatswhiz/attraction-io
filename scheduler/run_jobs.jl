@@ -1,12 +1,12 @@
 # ==============================================================================
-# Simple Startup Job Runner (clean logs + non-blocking per-group waits)
+# Startup Job Runner
 # ==============================================================================
 
 using CSV, DataFrames, Dates, Logging, Random
 
 # --- Config (overridable) -----------------------------------------------------
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
-if !@isdefined(PROPS);                  const PROPS = ["wdw","dlr","uor"]; end
+if !@isdefined(PROPS);                  const PROPS = ["wdw", "dlr", "uor", "ush", "tdr"]; end
 if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 5; end
 if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 16.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 360; end     # set 0 to disable waiting
@@ -67,10 +67,9 @@ function wait_until_fresh(prop::String, typ::String;
     return false
 end
 
-
 derive_park(entity::AbstractString, fallback::String) = begin
-    m = match(r"^[A-Za-z]{2}", entity)
-    m === nothing ? lowercase(fallback) : uppercase(m.match)
+    chars_only = replace(entity, r"\d+" => "")
+    isempty(chars_only) ? lowercase(fallback) : uppercase(chars_only[1:2])
 end
 
 # --- Entity loaders -----------------------------------------------------------
@@ -155,8 +154,10 @@ function run_all()
     @sync begin
         for prop in PROPS
             for typ in ("standby","priority")
-                if prop == "uor" && typ == "priority"
-                    @info "skipping non-existent group" group="uor/priority"
+                if ((prop == "uor" && typ == "priority") ||
+                    (prop == "ush" && typ == "priority") ||
+                    (prop == "tdr" && typ == "priority"))
+                    @info "skipping non-existent group" group="$prop/$typ"
                     continue
                 end
                 @async begin
@@ -173,4 +174,3 @@ function run_all()
 end
 
 run_all()
-@info "all done"

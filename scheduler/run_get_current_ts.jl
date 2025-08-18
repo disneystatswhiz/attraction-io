@@ -5,7 +5,7 @@ using Dates
 
 # Reuse existing constants if already defined by the including script
 const ROOT  = @isdefined(ROOT)  ? ROOT  : abspath(dirname(Base.active_project()))
-const PROPS = @isdefined(PROPS) ? PROPS : ["wdw","dlr","uor"]
+const PROPS = @isdefined(PROPS) ? PROPS : ["wdw","dlr","uor","ush","tdr"]
 
 get_current_path(prop::String, typ::String) =
     typ == "standby"  ? joinpath(ROOT, "input", "wait_times", prop, "current_wait.csv") :

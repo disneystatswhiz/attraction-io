@@ -1,5 +1,5 @@
 # =======================================================================================
-# 🎯 run_dimDateGroupID.jl — Generate Date Group ID Table (WDW or DLR)
+# 🎯 run_dimDateGroupID.jl — Generate Date Group ID Table
 # =======================================================================================
 
 # --- Main Function ---

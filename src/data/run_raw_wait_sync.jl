@@ -5,7 +5,7 @@
 using Dates
 
 # Properties to sync once per main_setup run
-const PROPERTIES = ["wdw", "dlr", "uor"]
+const PROPERTIES = ["wdw", "dlr", "uor", "ush", "tdr"]
 
 # Toggle priority for UOR if/when needed
 if !isdefined(@__MODULE__, :ENABLE_UOR_PRIORITY)

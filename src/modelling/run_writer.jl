@@ -8,7 +8,7 @@ using Dates, CSV, DataFrames, TimeZones
 function get_site_timezone(property::String)::TimeZone
     return property == "WDW" || property == "UOR" ? TimeZone("America/New_York") :
            property == "DLR" || property == "USH" ? TimeZone("America/Los_Angeles") :
-           property == "TDL"                     ? TimeZone("Asia/Tokyo") :
+           property == "TDR"                     ? TimeZone("Asia/Tokyo") :
            error("❌ Unknown property: $property")
 end
 

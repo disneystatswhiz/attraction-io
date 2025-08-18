@@ -21,7 +21,7 @@ Given a row from dimEntity and wait_type, build an Attraction struct with inferr
 function build_attraction_struct(row::DataFrameRow, entity_code::String)::Attraction
     code = uppercase(entity_code)
     name = row.name
-    park_code = lowercase(code[1:2])
+    park_code = lowercase(join(filter(c -> !isdigit(c), entity_code)))
 
     property_code = if park_code in ["ak", "mk", "hs", "ep", "bb", "tl"]
         "wdw"
