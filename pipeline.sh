@@ -15,6 +15,10 @@ mkdir -p input output temp work logs
 git reset --hard HEAD
 git pull --ff-only
 
+# Git info for the header
+GIT_MSG="$(git log -1 --pretty=%s 2>/dev/null || echo 'n/a')"
+GIT_DATE="$(git log -1 --date=iso-strict --pretty=%cd 2>/dev/null || echo 'n/a')"
+
 # Timestamped log (UTC) + machine tag
 TS="$(date -u +%F_%H%M%SZ)"
 HOST="$(hostname -s || echo ec2)"
@@ -31,11 +35,13 @@ echo "==== PIPELINE BOOT CONTEXT ===="
 date -Is
 echo "whoami: $(whoami)"
 echo "pwd:    $(pwd)"
-echo "git sha: $(git rev-parse --short HEAD 2>/dev/null || echo 'n/a')"
+echo "git date:  $GIT_DATE"
+echo "git msg:    $GIT_MSG"
 echo "julia:   $(command -v julia || echo 'not found')"
 julia --version || true
 timedatectl || true
 echo "================================"
+
 
 # Rotate old logs (simple, deterministic)
 echo "Rotating logs (keeping last $KEEP_LOGS)…"
