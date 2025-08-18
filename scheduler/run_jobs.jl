@@ -45,20 +45,28 @@ function wait_until_fresh(prop::String, typ::String;
                           window_hours::Real=FRESHNESS_WINDOW_HOURS,
                           max_wait_minutes::Int=MAX_WAIT_MINUTES,
                           poll_seconds::Int=POLL_SECONDS)::Bool
-    max_wait_minutes ≤ 0 && return false  # no waiting
+    max_wait_minutes ≤ 0 && return false
     deadline = time() + max_wait_minutes * 60
+
     while time() ≤ deadline
+        # 🔄 Pull the latest raw wait-time files from S3
+        include(joinpath(ROOT, "src", "data", "run_raw_wait_sync.jl"))
+
+        # Now check freshness locally
         if is_fresh_group(prop, typ; window_hours=window_hours, verbose=false)
             @info "became fresh; proceeding" group="$prop/$typ"
             return true
         end
+
         remaining = Int(clamp(round(deadline - time()), 0, typemax(Int)))
         @info "waiting to become fresh" group="$prop/$typ" retry_in_s=poll_seconds time_left_s=remaining
         sleep(poll_seconds)
     end
+
     @warn "did not become fresh in time; skipping" group="$prop/$typ" waited_min=max_wait_minutes
     return false
 end
+
 
 derive_park(entity::AbstractString, fallback::String) = begin
     m = match(r"^[A-Za-z]{2}", entity)

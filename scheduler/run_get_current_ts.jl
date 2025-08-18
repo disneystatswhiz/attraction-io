@@ -1,4 +1,4 @@
-# scheduler/mtimes.jl
+# scheduler/run_get_current_ts.jl
 # Helpers for locating current_* files and checking freshness. No side effects.
 
 using Dates
