@@ -88,30 +88,72 @@ function get_priority_entities(prop)
     collect(String.(unique(skipmissing(df.FATTID))))
 end
 
-# --- Run group with tiny worker pool -----------------------------------------
-function run_group!(entities::Vector{String}, prop::String, typ::String; max_parallel::Int=MAX_PARALLEL_PER_GROUP)
+# --- Run group with tiny worker pool (resilient) ------------------------------
+function run_group!(entities::Vector{String}, prop::String, typ::String;
+                    max_parallel::Int=MAX_PARALLEL_PER_GROUP,
+                    max_retries::Int=1)
+
     if isempty(entities)
         @warn "no entities found" group="$prop/$typ"
         return
     end
     @info "launching group" group="$prop/$typ" total=length(entities)
 
+    # simple shared counters
+    successes = Threads.Atomic{Int}(0)
+    failures  = Threads.Atomic{Int}(0)
+
     ch = Channel{String}(length(entities))
     for e in entities; put!(ch, e); end
     close(ch)
+
+    # tiny helper to run a single entity with retry + logging
+    function run_entity(e::String)
+        park = derive_park(e, prop)
+        cmd  = `julia --project=$ROOT $(joinpath(ROOT,"src","main_runner.jl")) $e $park $prop $typ`
+
+        attempt = 0
+        while true
+            attempt += 1
+            try
+                # run but don't crash on nonzero exit; check status yourself
+                status_ok = success(pipeline(cmd; stdout=logfile, stderr=logfile))
+                if status_ok
+                    Threads.atomic_add!(successes, 1)
+                    return
+                else
+                    if attempt > max_retries
+                        Threads.atomic_add!(failures, 1)
+                        return
+                    end
+                end
+            catch err
+                # catch Julia-side exceptions so @sync doesn't rethrow
+                @error "entity threw exception" group="$prop/$typ" entity=e attempt=attempt err=string(err) log=logfile
+                if attempt > max_retries
+                    Threads.atomic_add!(failures, 1)
+                    return
+                end
+            end
+
+            # simple backoff before retry
+            sleep(min(60, 5 * attempt))
+        end
+    end
 
     @sync begin
         for _ in 1:max_parallel
             @async begin
                 for e in ch
-                    park = derive_park(e, prop)
-                    run(`julia --project=$ROOT $(joinpath(ROOT,"src","main_runner.jl")) $e $park $prop $typ`)
+                    run_entity(e)  # swallow errors per-entity
                 end
             end
         end
     end
-    @info "group complete" group="$prop/$typ"
+
+    @info "group complete" group="$prop/$typ" ok=successes[] fail=failures[] total=length(entities)
 end
+
 
 # --- Runner (non-blocking across groups; skips uor/priority) ------------------
 function run_all()
