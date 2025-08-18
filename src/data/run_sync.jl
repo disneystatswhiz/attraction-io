@@ -3,12 +3,7 @@
 # ------------------------------------------------------------------------- #
 
 # ---------------------------------------------------------
-# Step 1: Sync raw wait time files
-# ---------------------------------------------------------
-sync_wait_times(ATTRACTION.code, ATTRACTION.property, ATTRACTION.queue_type)
-
-# ---------------------------------------------------------
-# Step 2: Sync encoded wait times file(s) from stats_work
+# Step 1: Sync encoded wait times file(s) from stats_work
 # ---------------------------------------------------------
 
 for wt in getproperty(ATTRACTION, Val(:wait_time_types))
@@ -27,7 +22,7 @@ for wt in getproperty(ATTRACTION, Val(:wait_time_types))
 end
 
 # ---------------------------------------------------------
-# Step 3: Sync forecast file(s) from stats_work
+# Step 2: Sync forecast file(s) from stats_work
 # ---------------------------------------------------------
 
 for wt in getproperty(ATTRACTION, Val(:wait_time_types))

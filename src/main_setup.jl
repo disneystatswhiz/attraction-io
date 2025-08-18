@@ -38,7 +38,10 @@ include(joinpath(ROOT, "src", "dim", "run_dimSeason.jl"))
 # --- Donor table scripts
 include(joinpath(ROOT, "src", "donor", "run_donorParkHours.jl"))
 
+# --- Script to sync all wait time files
+include(joinpath(ROOT, "src", "data", "run_raw_wait_sync.jl"))
+
 # --- End timer and report
 elapsed_dim = (time_ns() - start_time_pipeline) / 1e9
-log_header("✅ Dimension & Donor tables created in $(round(elapsed_dim / 60, digits=2)) minutes.")
+log_header("✅ Added Dimension & Donor tables & Wait Time syncs in $(round(elapsed_dim / 60, digits=2)) minutes.")
 # ===================================================================================== #

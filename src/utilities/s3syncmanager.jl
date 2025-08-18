@@ -1,42 +1,73 @@
 using JSON3, Dates
 
-# ----------------------------------------------------------
-# Sync all files needed for a specific entity pipeline
-# ----------------------------------------------------------
-"""
-    sync_wait_times(entity_id, property, type)
+const SYNC_PROPS_DEFAULT = ["wdw", "dlr", "uor"]
 
-Download necessary wait time input files from S3 for a given entity.
+# ------------------------------------------------------------------ #
+# Sync both standby and (optionally) priority files for one property #
+# ------------------------------------------------------------------ #
 
-Arguments:
-- `entity_id::String`  — Attraction code (e.g., "AK07")
-- `property::String`   — Property folder name (e.g., "wdw", "dlr")
-- `type::String`       — Type of data: `"standby"` or `"priority"`
+function sync_property_wait_times!(property::String; enable_priority::Bool=true, delete::Bool=false)
+    # Standby
+    s3_wait   = "s3://touringplans_stats/export/wait_times/$property/"
+    loc_wait  = joinpath(LOC_INPUT, "wait_times", property)
+    mkpath(loc_wait)
+    ok_wait = sync_from_s3_folder(s3_wait, loc_wait; exclude=["*"], include=["*.csv"], delete=delete)
 
-Example:
-    sync_wait_times("AK07", "wdw", "standby")
-"""
-function sync_wait_times(entity_id::String, property::String, type::String)
-    s3_base = "s3://touringplans_stats/export"
-
-    if type == "standby"
-        s3path = "$s3_base/wait_times/$property/"
-        localpath = joinpath(LOC_INPUT, "wait_times", property)
-    elseif type == "priority"
-        s3path = "$s3_base/fastpass_times/$property/"
-        localpath = joinpath(LOC_INPUT, "wait_times", "priority", property)
-    else
-        # @error("❌ Unsupported type: $type. Use 'standby' or 'priority'.")
+    # Priority
+    ok_prio = true
+    if enable_priority
+        s3_prio  = "s3://touringplans_stats/export/fastpass_times/$property/"
+        loc_prio = joinpath(LOC_INPUT, "wait_times", "priority", property)
+        mkpath(loc_prio)
+        ok_prio = sync_from_s3_folder(s3_prio, loc_prio; exclude=["*"], include=["*.csv"], delete=delete)
     end
 
-    mkpath(localpath)
-    # @info("⏳ [$(property)] Syncing from S3 for $type...")
-    success = sync_from_s3_folder(
-        s3path, localpath;
-        include=["$entity_id*.csv"]
-    )
-
+    return (standby=ok_wait, priority=ok_prio)
 end
+
+# ------------------------------------------------------- #
+# Sync all wait times once per day #
+# ------------------------------------------------------- #
+function sync_all_wait_times_once_per_day!(; properties::Vector{String}=SYNC_PROPS_DEFAULT,
+                                           enable_uor_priority::Bool=false,
+                                           delete::Bool=false)
+    # Sentinel + lock under LOC_INPUT to avoid permission surprises
+    sent_dir = joinpath(LOC_INPUT, ".sentinels"); mkpath(sent_dir)
+    stamp    = Dates.format(today(UTC), "yyyymmdd")
+    sentinel = joinpath(sent_dir, "wait_sync_$stamp")
+    lockfile = sentinel * ".lock"
+
+    # Fast path: already synced today
+    if isfile(sentinel)
+        return Dict("status"=>"skipped", "sentinel"=>sentinel)
+    end
+
+    # Try to lock; if another process is running, wait briefly for completion
+    io = try open(lockfile, "x") catch; nothing end
+    if io === nothing
+        for _ in 1:120
+            isfile(sentinel) && return Dict("status"=>"skipped", "sentinel"=>sentinel)
+            sleep(1)
+        end
+        return Dict("status"=>"skipped-timeout", "sentinel"=>sentinel)
+    end
+
+    try
+        results = Dict{String,Any}()
+        for prop in properties
+            enable_pri = (prop != "uor") || enable_uor_priority
+            res = sync_property_wait_times!(prop; enable_priority=enable_pri, delete=delete)
+            results[prop] = res
+        end
+        touch(sentinel)                         # mark success for this UTC day
+        results["status"]   = "ok"
+        results["sentinel"] = sentinel
+        return results
+    finally
+        close(io); rm(lockfile; force=true)
+    end
+end
+
 
 
 # -------------------------------------------------------

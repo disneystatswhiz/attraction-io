@@ -300,21 +300,31 @@ end
 # Get last modified timestamp of an S3 object
 # --------------------------------------------------------------------- #
 function get_last_modified_s3_ts(bucket::String, key::String)::DateTime
-    # Example output: 2025-08-14T12:34:56.000Z  (ISO 8601)
     cmd = `aws s3api head-object --bucket $bucket --key $key --query LastModified --output text`
-    iso = strip(read(cmd, String))
-    # Normalize timezone: replace trailing 'Z' with '+00:00' for robust parsing
-    iso_z = endswith(iso, "Z") ? replace(iso, "Z" => "+00:00") : iso
-    # Accept fractional seconds with 0–9 digits; try a couple common formats
-    iso_z = endswith(iso, "Z") ? replace(iso, "Z" => "+00:00") : iso
-    # Accept fractional seconds with 0–9 digits; try a couple common formats
-    for fmt in (dateformat"yyyy-mm-ddTHH:MM:SSzzzz",
-                dateformat"yyyy-mm-ddTHH:MM:SS.szzzz",
-                dateformat"yyyy-mm-ddTHH:MM:SS.ssszzzz")
-        try
-            return DateTime(iso_z, fmt)  # This is UTC because tz is +00:00
-        catch
-        end
+    iso = strip(read(cmd, String))  # e.g. "2025-08-14T12:34:56.000Z" or "+00:00"
+
+    # RFC3339: yyyy-mm-ddTHH:MM:SS[.fraction](Z|±HH:MM)
+    m = match(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+\-]\d{2}:\d{2})$", iso)
+    m === nothing && error("Unexpected LastModified format: $iso")
+
+    base  = m.captures[1]
+    frac  = something(m.captures[2], "")
+    tzstr = m.captures[3]
+
+    # Normalize fraction to milliseconds for Dates.DateTime
+    frac3 = isempty(frac) ? "" : "." * rpad(first(frac, 3), 3, '0')
+
+    # Parse naive local datetime part
+    dt = DateTime(base * frac3, dateformat"yyyy-mm-ddTHH:MM:SS.sss")
+
+    # Adjust to UTC based on offset
+    if tzstr == "Z" || tzstr == "+00:00"
+        return dt
+    else
+        mm = match(r"^([+\-])(\d{2}):(\d{2})$", tzstr)
+        sign = mm.captures[1] == "+" ? 1 : -1
+        h    = parse(Int, mm.captures[2])
+        mi   = parse(Int, mm.captures[3])
+        return dt - sign*(Hour(h) + Minute(mi))  # convert to UTC
     end
-    error("Could not parse LastModified ISO timestamp: $iso")
 end
