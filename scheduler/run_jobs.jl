@@ -8,7 +8,7 @@ using CSV, DataFrames, Dates, Logging, Random
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
 if !@isdefined(PROPS);                  const PROPS = ["wdw","dlr","uor"]; end
 if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 3; end
-if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 12.0; end
+if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 16.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 360; end     # set 0 to disable waiting
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 300; end
 
