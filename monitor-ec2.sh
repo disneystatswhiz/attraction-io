@@ -22,8 +22,8 @@ ssh -t -i "$KEY" -o StrictHostKeyChecking=no "$HOST" 'bash -lc "
   # Start fresh session
   tmux has-session -t '"$SESSION"' 2>/dev/null && tmux kill-session -t '"$SESSION"'
 
-  # Pane 1: live pipeline log
-  tmux new-session -d -s '"$SESSION"' \"tail -F logs/pipeline_latest.log\"
+  # Pane 1: live pipeline log (show from first line, then follow)
+  tmux new-session -d -s "$SESSION" "tail -n +1 -F logs/pipeline_latest.log"
 
   # Pane 2: live /work watcher
   tmux split-window -h -t '"$SESSION"':0 \"watch -n 2 ls -lh work/\"
