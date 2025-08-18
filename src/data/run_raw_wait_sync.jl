@@ -12,7 +12,7 @@ if !isdefined(@__MODULE__, :ENABLE_UOR_PRIORITY)
     @eval const ENABLE_UOR_PRIORITY = false
 end
 
-@info "⏳ Syncing raw wait-time inputs from S3 → local..."
+# @info "⏳ Syncing raw wait-time inputs from S3 → local..."
 
 for prop in PROPERTIES
 
@@ -25,7 +25,6 @@ for prop in PROPERTIES
         exclude = ["*"],
         include = ["*.csv"],   # narrow if desired, e.g., ["current_wait.csv", "*.csv"]
     )
-    !ok1 && @info "⚠️  Standby sync returned false for property=$prop"
 
     # Priority (respect UOR toggle)
     if prop != "uor" || ENABLE_UOR_PRIORITY
@@ -37,8 +36,7 @@ for prop in PROPERTIES
             exclude = ["current_test*"],
             include = ["*.csv"],  # or just ["current_fastpass.csv"] if you want minimal
         )
-        !ok2 && @info "⚠️  Priority sync returned false for property=$prop"
     end
 end
 
-@info "✅ Raw wait-time sync complete."
+# @info "✅ Raw wait-time sync complete."
