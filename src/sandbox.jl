@@ -60,6 +60,7 @@ include(joinpath(ROOT, "src", "calendar", "run_observed_dailyavgs.jl"))
 
 include(joinpath(ROOT, "src", "reporting", "run_descriptives.jl"))
 include(joinpath(ROOT, "src", "reporting", "run_accuracyreports.jl"))
+include(joinpath(ROOT, "src", "reporting", "run_daily_wait_time_curve.jl"))
 
 # ===================================================================================== #
 # ---------------------------- Final Logging and Cleanup ------------------------------ #
