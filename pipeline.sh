@@ -4,7 +4,7 @@ set -euo pipefail
 # ========= Config =========
 PROJECT_DIR="/home/ubuntu/attraction-io"
 KEEP_LOGS=14                 # how many pipeline_*.log files to keep
-SHUTDOWN_ON_EXIT=1           # set to 0 to skip poweroff for debugging
+SHUTDOWN_ON_EXIT=0           # set to 0 to skip poweroff for debugging
 PATH="/usr/local/bin:/usr/bin:/bin"   # cron-safe PATH
 # ==========================
 
