@@ -42,6 +42,33 @@ julia --version || true
 timedatectl || true
 echo "================================"
 
+# >>> added: Julia environment bootstrap (cron-safe, self-healing)
+export JULIA_PROJECT="$PROJECT_DIR"
+export JULIA_DEPOT_PATH="/home/ubuntu/.julia"
+export GKSwstype=nul                      # headless GR just in case
+# optional: speedups/consistency
+# export JULIA_NUM_THREADS=$(nproc)
+
+echo "Bootstrapping Julia env (instantiate + precompile)…"
+julia --project="$JULIA_PROJECT" -e '
+    using Pkg
+    try
+        Pkg.Registry.update()
+        Pkg.instantiate(; verbose=true)
+        Pkg.precompile()
+    catch e
+        @warn "Pkg bootstrap failed, clearing compiled cache and retrying" exception=(e, catch_backtrace())
+        cache = joinpath(homedir(), ".julia", "compiled", "v$(VERSION.major).$(VERSION.minor)")
+        try
+            run(`rm -rf $cache`)
+        catch err
+            @warn "Failed to remove compiled cache" exception=(err, catch_backtrace())
+        end
+        Pkg.instantiate(; verbose=true)
+        Pkg.precompile()
+    end
+'
+# <<< added
 
 # Rotate old logs (simple, deterministic)
 echo "Rotating logs (keeping last $KEEP_LOGS)…"
@@ -68,4 +95,4 @@ mkdir -p input output temp work
 
 # -------- run the launcher (logs captured) --------
 echo "Starting Julia launcher at $(date -Is)…"
-julia --project=. scheduler/run_jobs.jl
+julia --project="$JULIA_PROJECT" scheduler/run_jobs.jl
