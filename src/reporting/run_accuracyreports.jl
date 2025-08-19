@@ -157,7 +157,7 @@ function process_accuracy_report(
     out_name   = "accuracy_summary_$(upper_code)_$(suffix).csv"
     local_path = joinpath(LOC_WORK, uppercase(upper_code), "already_on_s3", out_name)
     out_path   = joinpath(LOC_OUTPUT, uppercase(upper_code), out_name)
-    s3_path    = "s3://touringplans_stats/stats_work/attraction-io/reporting/$(out_name)"
+    s3_path    = "s3://touringplans_stats/stats_work/attraction-io/reporting/accuracy_summaries/$(out_name)"
 
     CSV.write(local_path, overall_stats; append=isfile(local_path))
     mkpath(dirname(out_path))  # <-- Ensures the folder exists!

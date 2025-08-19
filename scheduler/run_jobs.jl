@@ -7,7 +7,7 @@ using CSV, DataFrames, Dates, Logging, Random
 # --- Config (overridable) -----------------------------------------------------
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
 if !@isdefined(PROPS);                  const PROPS = ["wdw", "dlr", "uor", "ush", "tdr"]; end
-if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 3; end
+if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 2; end
 if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 16.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 360; end     # set 0 to disable waiting
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 300; end
@@ -77,6 +77,8 @@ function get_standby_entities(prop)
     f = joinpath(ROOT, "input", "wait_times", prop, "current_wait.csv")
     isfile(f) || return String[]
     df = CSV.read(f, DataFrame)
+    # withhold AK07 as test case for dev
+    df = df[df.entity_code .!= "AK07", :]
     collect(String.(unique(skipmissing(df.entity_code))))
 end
 
@@ -84,6 +86,8 @@ function get_priority_entities(prop)
     f = joinpath(ROOT, "input", "wait_times", "priority", prop, "current_fastpass.csv")
     isfile(f) || return String[]
     df = CSV.read(f, DataFrame)
+    # withhold AK06 as test case for dev
+    df = df[df.entity_code .!= "AK06", :]
     collect(String.(unique(skipmissing(df.FATTID))))
 end
 
@@ -157,7 +161,6 @@ function run_all()
                 if ((prop == "uor" && typ == "priority") ||
                     (prop == "ush" && typ == "priority") ||
                     (prop == "tdr" && typ == "priority"))
-                    @info "skipping non-existent group" group="$prop/$typ"
                     continue
                 end
                 @async begin

@@ -95,6 +95,7 @@ function upload_file_to_s3(localfile::String, s3file::String)::Bool
 
     try
         run(`aws s3 cp $localfile $s3file --only-show-errors`)
+        # @info "✅ S3 file uploaded" localfile s3file
         return true
     catch e
         # @warn "S3 file upload failed" localfile s3file exception = e

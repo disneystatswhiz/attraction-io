@@ -13,52 +13,20 @@ using Logging
 
 # ---------------- Config ----------------
 const MIN_POINTS     = 10      # min rows per series for a day to qualify
-const POSITIVE_ONLY  = false    # ignore observed rows where target <= 0
+const POSITIVE_ONLY  = false   # ignore observed rows where target <= 0
 const LABEL_TEXTSIZE = 10      # size for actual-observed data labels
 
 CODE  = ATTRACTION.code
 QTYPE = lowercase(strip(String(ATTRACTION.queue_type)))  # "priority" | "standby"
 
 # Where to send images in S3 (folder-style)
-const S3_BASE = "s3://touringplans_stats/stats_work/attraction-io/reporting/"
+const S3_BASE = "s3://touringplans_stats/stats_work/attraction-io/reporting/plots/"
 
 # Canonical column names (resolve to actual key per-DF)
 const COL_ID  = "id_park_day_id"
 const COL_X   = "pred_mins_since_6am"
 const COL_OBS = "target"
 const COL_FC  = "predicted_wait_time"
-
-# ---------------- Paths + Load (queue-type aware) ----------------
-base = joinpath(LOC_WORK, CODE, "already_on_s3")
-
-read_required(p) = (isfile(p) ? CSV.read(p, DataFrame) : error("Missing file: $p"))
-
-if QTYPE == "priority"
-    # Priority uses its own pair; no "actual" series for this queue type
-    path_priority_obs = joinpath(base, "wait_times_$(CODE)_priority.csv")
-    path_priority_fc  = joinpath(base, "forecasts_$(CODE)_priority.csv")
-
-    df_posted_obs = read_required(path_priority_obs)   # normalize name to "posted" for reuse downstream
-    df_posted_fc  = read_required(path_priority_fc)
-    df_actual_obs = DataFrame()  # empty — not used for priority plots
-    df_actual_fc  = DataFrame()
-
-    # Remove target >= 8000 for this analysis, only if target is not missing
-    obs_key = obscol(df_posted_obs)
-    df_posted_obs = df_posted_obs[.!ismissing.(df_posted_obs[!, obs_key]) .& (df_posted_obs[!, obs_key] .< 8000), :]
-
-else
-    # Standby uses posted + actual (4 files)
-    path_posted_obs = joinpath(base, "wait_times_$(CODE)_posted.csv")
-    path_actual_obs = joinpath(base, "wait_times_$(CODE)_actual.csv")
-    path_posted_fc  = joinpath(base, "forecasts_$(CODE)_posted.csv")
-    path_actual_fc  = joinpath(base, "forecasts_$(CODE)_actual.csv")
-
-    df_posted_obs = read_required(path_posted_obs)
-    df_actual_obs = read_required(path_actual_obs)
-    df_posted_fc  = read_required(path_posted_fc)
-    df_actual_fc  = read_required(path_actual_fc)
-end
 
 # ---------------- Column resolution helpers ----------------
 "Resolve a column by name (case-insensitive). Returns the actual key (Symbol or String)."
@@ -101,6 +69,38 @@ end
 # helper: case-insensitive column existence
 has_col(df::DataFrame, wanted::AbstractString) =
     any(lowercase(String(c)) == lowercase(wanted) for c in names(df))
+
+# ---------------- Paths + Load (queue-type aware) ----------------
+base = joinpath(LOC_WORK, CODE, "already_on_s3")
+
+read_required(p) = (isfile(p) ? CSV.read(p, DataFrame) : error("Missing file: $p"))
+
+if QTYPE == "priority"
+    # Priority uses its own pair; no "actual" series for this queue type
+    path_priority_obs = joinpath(base, "wait_times_$(CODE)_priority.csv")
+    path_priority_fc  = joinpath(base, "forecasts_$(CODE)_priority.csv")
+
+    df_posted_obs = read_required(path_priority_obs)   # normalize name to "posted" for reuse downstream
+    df_posted_fc  = read_required(path_priority_fc)
+    df_actual_obs = DataFrame()  # empty — not used for priority plots
+    df_actual_fc  = DataFrame()
+
+    # Remove target >= 8000 for this analysis, only if target is not missing
+    obs_key = obscol(df_posted_obs)
+    df_posted_obs = df_posted_obs[.!ismissing.(df_posted_obs[!, obs_key]) .& (df_posted_obs[!, obs_key] .< 8000), :]
+
+else
+    # Standby uses posted + actual (4 files)
+    path_posted_obs = joinpath(base, "wait_times_$(CODE)_posted.csv")
+    path_actual_obs = joinpath(base, "wait_times_$(CODE)_actual.csv")
+    path_posted_fc  = joinpath(base, "forecasts_$(CODE)_posted.csv")
+    path_actual_fc  = joinpath(base, "forecasts_$(CODE)_actual.csv")
+
+    df_posted_obs = read_required(path_posted_obs)
+    df_actual_obs = read_required(path_actual_obs)
+    df_posted_fc  = read_required(path_posted_fc)
+    df_actual_fc  = read_required(path_actual_fc)
+end
 
 # safe coercion loop (handles empty DFs)
 for df in (df_posted_obs, df_posted_fc, df_actual_obs, df_actual_fc)
@@ -353,4 +353,3 @@ else
         @warn "Plotted most recent day without full obs+fc intersection" CODE QTYPE plot_day status
     end
 end
-
