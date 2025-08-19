@@ -95,4 +95,4 @@ mkdir -p input output temp work
 
 # -------- run the launcher (logs captured) --------
 echo "Starting Julia launcher at $(date -Is)…"
-julia --project="$JULIA_PROJECT" scheduler/run_jobs.jl
+stdbuf -oL -eL julia --project="$JULIA_PROJECT" scheduler/run_jobs.jl
