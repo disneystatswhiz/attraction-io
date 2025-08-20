@@ -291,13 +291,13 @@ if plot_day === nothing
     # Diagnostics: what days exist in each file?
     if !isempty(names(df_posted_obs))
         obs_days_all = unique(df_posted_obs[!, idcol(df_posted_obs)])
-        @info "Observed posted days (min..max)" min_obs=(isempty(obs_days_all) ? missing : minimum(obs_days_all)) max_obs=(isempty(obs_days_all) ? missing : maximum(obs_days_all))
+        # @info "Observed posted days (min..max)" min_obs=(isempty(obs_days_all) ? missing : minimum(obs_days_all)) max_obs=(isempty(obs_days_all) ? missing : maximum(obs_days_all))
     end
     if !isempty(names(df_posted_fc))
         fc_days_all  = unique(df_posted_fc[!,  idcol(df_posted_fc)])
-        @info "Forecast posted days (min..max)" min_fc=(isempty(fc_days_all) ? missing : minimum(fc_days_all)) max_fc=(isempty(fc_days_all) ? missing : maximum(fc_days_all))
+        # @info "Forecast posted days (min..max)" min_fc=(isempty(fc_days_all) ? missing : minimum(fc_days_all)) max_fc=(isempty(fc_days_all) ? missing : maximum(fc_days_all))
     end
-    @warn "No suitable day found in observed or forecast — skipping plot" CODE QTYPE
+    # @warn "No suitable day found in observed or forecast — skipping plot" CODE QTYPE
 
 else
     filedate = Dates.format(plot_day, dateformat"yyyymmdd")
@@ -319,7 +319,7 @@ else
             outfile="plot_daily_curve_$(CODE)_priority.png")
 
         s3path = S3_BASE * basename(localpath)
-        upload_file_to_s3(localpath, s3path) || @warn("Upload failed", localpath, s3path)
+        upload_file_to_s3(localpath, s3path)
 
     elseif QTYPE == "standby"
         # ---- posted + actual ----
@@ -344,12 +344,12 @@ else
             outfile="plot_daily_curve_$(CODE)_standby.png")
 
         s3path = S3_BASE * basename(localpath)
-        upload_file_to_s3(localpath, s3path) || @warn("Upload failed", localpath, s3path)
+        upload_file_to_s3(localpath, s3path)
     else
-        @warn "Unknown queue type" CODE QTYPE
+        # @warn "Unknown queue type" CODE QTYPE
     end
 
     if status != :ok
-        @warn "Plotted most recent day without full obs+fc intersection" CODE QTYPE plot_day status
+        # @warn "Plotted most recent day without full obs+fc intersection" CODE QTYPE plot_day status
     end
 end

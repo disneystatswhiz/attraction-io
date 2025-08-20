@@ -32,7 +32,7 @@ function latest_csv_mod(localpath::String, tz::TimeZone)
 end
 
 function main()
-    s3path = "s3://touringplans_stats/stats_work/attraction-io/reporting"
+    s3path = "s3://touringplans_stats/stats_work/attraction-io/reporting/descriptive_summaries/"
     localpath = "d:\\GitHub\\attraction-io\\temp"
     tz = TimeZone("America/Toronto")
 

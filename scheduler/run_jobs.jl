@@ -79,6 +79,7 @@ function get_standby_entities(prop)
     df = CSV.read(f, DataFrame)
     # withhold AK07 as test case for dev
     df = df[df.entity_code .!= "AK07", :]
+    df = df[df.forecasts_category .== "include", :]
     collect(String.(unique(skipmissing(df.entity_code))))
 end
 
