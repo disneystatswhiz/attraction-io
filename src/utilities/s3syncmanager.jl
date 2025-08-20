@@ -1,6 +1,8 @@
 using JSON3, Dates
 
-const SYNC_PROPS_DEFAULT = ["wdw", "dlr", "uor", "ush", "tdl"]
+if !@isdefined SYNC_PROPS_DEFAULT
+    const SYNC_PROPS_DEFAULT = ["wdw", "dlr", "uor", "ush", "tdl"]
+end
 
 # ------------------------------------------------------------------ #
 # Sync both standby and (optionally) priority files for one property #

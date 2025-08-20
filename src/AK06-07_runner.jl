@@ -7,10 +7,10 @@
 #    exit(1)
 #end
 
-const ENTITY_CODE = "ak07" #lowercase(ARGS[1])
+const ENTITY_CODE = "ak06" #lowercase(ARGS[1])
 const PARK        = "ak" #lowercase(ARGS[2])
 const PROPERTY    = "wdw" #lowercase(ARGS[3])
-const QUEUE_TYPE  = "standby" #lowercase(ARGS[4])
+const QUEUE_TYPE  = "priority" #lowercase(ARGS[4])
 
 # ===================================================================================== #
 # ------------------------- Initial Setup and Modules --------------------------------- #

@@ -17,6 +17,7 @@ const POSITIVE_ONLY  = false   # ignore observed rows where target <= 0
 const LABEL_TEXTSIZE = 10      # size for actual-observed data labels
 
 CODE  = ATTRACTION.code
+NAME  = ATTRACTION.name
 QTYPE = lowercase(strip(String(ATTRACTION.queue_type)))  # "priority" | "standby"
 
 # Where to send images in S3 (folder-style)
@@ -27,6 +28,9 @@ const COL_ID  = "id_park_day_id"
 const COL_X   = "pred_mins_since_6am"
 const COL_OBS = "target"
 const COL_FC  = "predicted_wait_time"
+
+# ---------------- Refresh already_on_s3 data --------------- 
+include(joinpath(ROOT, "src", "data", "run_sync.jl"))
 
 # ---------------- Column resolution helpers ----------------
 "Resolve a column by name (case-insensitive). Returns the actual key (Symbol or String)."
@@ -163,21 +167,21 @@ function fmt_ampm(mins_since_6::Real)
     t = Time(6) + Minute(round(Int, mins_since_6))
     h24 = hour(t); m = minute(t)
     h12 = h24 % 12; h12 = (h12 == 0 ? 12 : h12)
-    ampm = h24 < 12 ? "a.m." : "p.m."
+    ampm = h24 < 12 ? "" : ""
     return string(h12, ":", lpad(string(m), 2, '0'), " ", ampm)
 end
 
 # ---------------- Plotters (return local file path) ----------------
 # PRIORITY (2 series, blue)
 function make_priority_plot(df_obs::DataFrame, df_fc::DataFrame;
-                            code::String, date_for_title::Date, outfile::String)::String
+                            code::String, name::String, date_for_title::Date, outfile::String)::String
     sort_by_x!(df_obs); sort_by_x!(df_fc)
     x_obs, y_obs = _xy(df_obs, xcol(df_obs), obscol(df_obs))
     x_fc , y_fc  = _xy(df_fc,  xcol(df_fc),  fccol(df_fc))
 
     f = Figure(size=(1100, 650))
     ax = Axis(f[1,1],
-        title    = "$code — $(Dates.format(date_for_title, dateformat"yyyy-mm-dd"))",
+        title    = "$code — $name - $(Dates.format(date_for_title, dateformat"yyyy-mm-dd"))",
         subtitle = "Priority: Observed vs Predicted",
         xlabel   = "Minutes since 6am", ylabel = "Wait time (minutes)")
 
@@ -208,7 +212,7 @@ end
 # STANDBY (4 series: posted blue + actual orange, with labels on Actual Observed)
 function make_standby_combined_plot(df_pobs::DataFrame, df_pfc::DataFrame,
                                     df_aobs::DataFrame, df_afc::DataFrame;
-                                    code::String, date_for_title::Date, outfile::String)::String
+                                    code::String, name::String, date_for_title::Date, outfile::String)::String
     sort_by_x!(df_pobs); sort_by_x!(df_pfc); sort_by_x!(df_aobs); sort_by_x!(df_afc)
     xp_obs, yp_obs = _xy(df_pobs, xcol(df_pobs), obscol(df_pobs))
     xp_fc , yp_fc  = _xy(df_pfc,  xcol(df_pfc),  fccol(df_pfc))
@@ -217,7 +221,7 @@ function make_standby_combined_plot(df_pobs::DataFrame, df_pfc::DataFrame,
 
     f = Figure(size=(1100, 650))
     ax = Axis(f[1,1],
-        title    = "$code — $(Dates.format(date_for_title, dateformat"yyyy-mm-dd"))",
+        title    = "$code — $name - $(Dates.format(date_for_title, dateformat"yyyy-mm-dd"))",
         subtitle = "Standby: Posted & Actual (Observed vs Predicted)",
         xlabel   = "Minutes since 6am", ylabel = "Wait time (minutes)")
 
@@ -251,36 +255,41 @@ function make_standby_combined_plot(df_pobs::DataFrame, df_pfc::DataFrame,
         y_max = 1.1 * max(1.0, maximum(y_all))
         ylims!(ax, 0, y_max)
 
-        # ---- label Actual Observed points: "25 @ 9:32 a.m." with rounded orange box ----
+        # ---- label Actual Observed points ----
         if !isempty(xa_obs)
-            dy = 0.02 * y_max  # vertical offset in data units
-            positions = Point2f.(xa_obs, ya_obs .+ dy)
-            labels = string.(round.(Int, ya_obs), " @ ", fmt_ampm.(xa_obs))
+            keep = trues(length(xa_obs))
+            for i in 2:length(xa_obs)
+                if abs(xa_obs[i] - xa_obs[i-1]) < 30 && abs(ya_obs[i] - ya_obs[i-1]) < 5
+                    keep[i] = false
+                end
+            end
+
+            dy = 0.02 * y_max
+            positions   = Point2f.(xa_obs[keep], ya_obs[keep] .+ dy)
+            label_texts = string.(round.(Int, ya_obs[keep]), " @ ", fmt_ampm.(xa_obs[keep]))
 
             textlabel!(ax, positions;
-                text = labels,
-                # box style
+                text = label_texts,
                 background_color = :orange,
-                cornerradius     = 6,
-                padding          = 6,
-                strokecolor      = :transparent,
-                alpha            = 0.9,
-                # text style
-                text_color       = :black,
-                fontsize         = LABEL_TEXTSIZE,
-                # placement
-                text_align       = (:left, :bottom),
-                offset           = (4, 2),
-                space            = :data
+                cornerradius = 6,
+                padding = 6,
+                strokecolor = :transparent,
+                alpha = 0.9,
+                text_color = :black,
+                fontsize = LABEL_TEXTSIZE,
+                text_align = (:left, :bottom),
+                offset = (4, 2),
+                space = :data
             )
-        end
-    end
+        end  # !isempty(xa_obs)
+    end      # <-- this was missing
 
     outdir  = ensure_outdir(code)
     outpath = joinpath(outdir, outfile)
     save(outpath, f)
     return outpath
 end
+
 
 # ---------------- Pick day & plot + S3 upload ----------------
 plot_day, status = choose_plot_day(df_posted_obs, df_posted_fc;
@@ -315,7 +324,7 @@ else
         f_posted_fc  = df_posted_fc[df_posted_fc[!, id_key_pf] .== plot_day, :]
 
         localpath = make_priority_plot(f_posted_obs, f_posted_fc;
-            code=CODE, date_for_title=plot_day,
+            code=CODE, name=NAME, date_for_title=plot_day,
             outfile="plot_daily_curve_$(CODE)_priority.png")
 
         s3path = S3_BASE * basename(localpath)
@@ -340,7 +349,7 @@ else
         f_actual_fc  = df_actual_fc[df_actual_fc[!, id_key_af] .== plot_day, :]
 
         localpath = make_standby_combined_plot(f_posted_obs, f_posted_fc, f_actual_obs, f_actual_fc;
-            code=CODE, date_for_title=plot_day,
+            code=CODE, name=NAME, date_for_title=plot_day,
             outfile="plot_daily_curve_$(CODE)_standby.png")
 
         s3path = S3_BASE * basename(localpath)
