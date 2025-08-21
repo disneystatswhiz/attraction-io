@@ -45,13 +45,16 @@ function main()
             continue
         end
 
-        # If existing input file found, append and dedup
-        if isfile(input_path)
+        # If existing input file found and has data, append and dedup
+        if isfile(input_path) && filesize(input_path) > 0
             df_existing = CSV.read(input_path, DataFrame)
+            if nrow(df_existing) > 0
             df_existing.meta_observed_at = parse_zoneddatetimes_simple(df_existing.meta_observed_at)
-
             df_combined = vcat(df_existing, df_new; cols = :union)
             df_final = unique(df_combined)
+            else
+            df_final = df_new
+            end
         else
             df_final = df_new
         end
