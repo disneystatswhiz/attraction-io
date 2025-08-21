@@ -39,7 +39,7 @@ function main()
     last_file = nothing
     last_time = ZonedDateTime(0, tz)
 
-    println("Starting S3 watcher loop. Press Ctrl+C to stop.")
+    println("Starting S3 watcher loop - $s3path. Press Ctrl+C to stop.")
     while true
         sync_from_s3_folder(s3path, localpath)
         file, mtime = latest_csv_mod(localpath, tz)

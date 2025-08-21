@@ -8,7 +8,7 @@ using CSV, DataFrames, Dates, Logging, Random
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
 if !@isdefined(PROPS);                  const PROPS = ["wdw", "dlr", "uor", "ush", "tdr"]; end
 if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 3; end
-if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 16.0; end
+if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 12.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 360; end     # set 0 to disable waiting
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 300; end
 
@@ -79,7 +79,7 @@ function get_standby_entities(prop)
     df = CSV.read(f, DataFrame)
     # withhold AK07 as test case for dev
     df = df[df.entity_code .!= "AK07", :]
-    df = df[df.forecasts_category .== "include", :]
+    df = df[.!ismissing.(df.submitted_posted_time) .| .!ismissing.(df.submitted_actual_time), :]
     collect(String.(unique(skipmissing(df.entity_code))))
 end
 
@@ -88,7 +88,7 @@ function get_priority_entities(prop)
     isfile(f) || return String[]
     df = CSV.read(f, DataFrame)
     # withhold AK06 as test case for dev
-    df = df[df.entity_code .!= "AK06", :]
+    df = df[df.FATTID .!= "AK06", :]
     collect(String.(unique(skipmissing(df.FATTID))))
 end
 
