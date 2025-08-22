@@ -7,7 +7,7 @@ using CSV, DataFrames, Dates, Logging, Random
 # --- Config (overridable) -----------------------------------------------------
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
 if !@isdefined(PROPS);                  const PROPS = ["wdw", "dlr", "uor", "ush", "tdr"]; end
-if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 2; end
+if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 4; end
 if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 12.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 360; end # If not fresh, keep checking for up to 6 hours
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 600; end # If not fresh, recheck every 10 minutes
@@ -15,7 +15,7 @@ if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 600; end # If not f
 # --- Setup --------------------------------------------------------------------
 include(joinpath(ROOT, "src", "main_setup.jl"))
 
-# Show current_* mtimes (uses your existing script)
+# --- Show current_* mtimes (uses your existing script) ------------------------
 include(joinpath(ROOT, "scheduler", "run_get_current_ts.jl"))
 
 # --- Helpers ------------------------------------------------------------------
