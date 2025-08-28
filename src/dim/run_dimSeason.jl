@@ -114,6 +114,9 @@ function main()
     # --- Distribute to input folders
     CSV.write(season_path, output)
 
+    # --- Upload to S3 ---
+    upload_file_to_s3(season_path, "s3://touringplans_stats/stats_work/dimension_tables/dimseason.csv")
+    
 end
 
 main()

@@ -66,4 +66,7 @@ df_parkhours.hours_open = [ismissing(open) || ismissing(close) ? missing :
 dim_parkhours_file = joinpath("work", "_dim", "dimparkhours.csv")
 CSV.write(dim_parkhours_file, df_parkhours)
 
+# --- Upload to S3 ---
+upload_file_to_s3(dim_parkhours_file, "s3://touringplans_stats/stats_work/dimension_tables/dimparkhours.csv")
+
 # --- end of run_dimParkHours.jl ---

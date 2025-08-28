@@ -54,3 +54,6 @@ df_struct = DataFrame(
 )
 
 CSV.write(joinpath(LOC_DIM, "dimevents.csv"), df_struct)
+
+# --- Upload to S3 ---
+upload_file_to_s3(joinpath(LOC_DIM, "dimevents.csv"), "s3://touringplans_stats/stats_work/dimension_tables/dimevents.csv")

@@ -70,6 +70,10 @@ function main()
     output_df = sort(select(df, [:park_day_id, Symbol("date_group_id")]), :park_day_id)
     CSV.write(output_file, output_df)
 
+    # Send the dimdategroupid dataset to S3
+    upload_file_to_s3(output_file,"s3://touringplans_stats/stats_work/dimension_tables/dimdategroupid.csv")
+
+
 end
 
 

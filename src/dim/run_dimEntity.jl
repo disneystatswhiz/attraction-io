@@ -27,3 +27,6 @@ end
 
 # --- Write master dimEntity table ---
 CSV.write(joinpath(LOC_DIM, "dimentity.csv"), df_all_entities)
+
+# --- Upload to S3 ---
+upload_file_to_s3(joinpath(LOC_DIM, "dimentity.csv"), "s3://touringplans_stats/stats_work/dimension_tables/dimentity.csv")

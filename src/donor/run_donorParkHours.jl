@@ -141,6 +141,10 @@ function main()
 
     select!(df, Not(:date_group_id))
     CSV.write(output_file, df)
+
+    # --- Upload to S3 ---
+    upload_file_to_s3(output_file, "s3://touringplans_stats/stats_work/dimension_tables/donorparkhours.csv")
+
 end
 
 main()

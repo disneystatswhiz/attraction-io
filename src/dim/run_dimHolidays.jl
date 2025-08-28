@@ -84,6 +84,9 @@ function main()
     out = select(df, [:park_day_id, :holidaycode, :holidayname])
     CSV.write(holidays_path, out)
 
+    # --- Upload to S3 ---
+    upload_file_to_s3(holidays_path, "s3://touringplans_stats/stats_work/dimension_tables/dimholidays.csv")
+
 end
 
 main()

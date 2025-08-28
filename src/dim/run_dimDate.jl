@@ -73,8 +73,11 @@ function save_dimdate()
 
     df = build_dimdate()  # <-- assumes this function is already defined
     CSV.write(target_path, df)
-end
 
+    # Send the dimDate dataset to S3
+    upload_file_to_s3(target_path,"s3://touringplans_stats/stats_work/dimension_tables/dimdate.csv")
+
+end
 
 # Run it!
 save_dimdate()
