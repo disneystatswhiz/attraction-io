@@ -7,11 +7,7 @@ using JSON3, Dates, DataFrames, CSV
 # --- begin code ---
 
 function build_dimdate()::DataFrame
-    if today() > Date(year(today()), 8, 31)
-        end_date = Date(year(today()) + 2, 12, 31)
-    else
-        end_date = Date(year(today()) + 1, 12, 31)
-    end
+    end_date = Dates.today() - Day(1) + Year(2)
 
     df = DataFrame(park_day_id = collect(Date(2005, 1, 1):end_date))
     df.year = year.(df.park_day_id)

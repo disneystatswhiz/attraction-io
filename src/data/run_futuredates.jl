@@ -20,32 +20,39 @@ using Dates, CSV, DataFrames, TimeZones
 function generate_future_forecast_times(attraction::Attraction)::DataFrame
     tz = attraction.timezone
 
-    # Determine date range
-    today_local = Date(ZonedDateTime(now(), tz))
-    start_date = (hour(ZonedDateTime(now(), tz)) < 6) ? today_local : today_local + Day(1)
-    end_date = today_local > Date(year(today_local), 8, 31) ?
-        Date(year(today_local) + 2, 12, 31) :
-        Date(year(today_local) + 1, 12, 31)
+    # Local "now"
+    now_local   = ZonedDateTime(now(), tz)
+    today_local = Date(now_local)
 
-    # Generate all 15-min intervals across all days
+    # Start at today (before cutoff) or tomorrow (after cutoff)
+    start_date  = (hour(now_local) < 6) ? today_local : today_local + Day(1)
+
+    # End at (yesterday + 2 years), local to the property
+    end_date    = (today_local - Day(1)) + Year(2)
+
+    # Guard: if start_date ever passes end_date (e.g., Dec 31 edge cases), bail early
+    if start_date > end_date
+        return DataFrame(park_day_id = Date[], observed_at = ZonedDateTime[])
+    end
+
+    # Generate 15-min intervals 06:00 → 03:00 next day
     observed_at = ZonedDateTime[]
     park_day_id = Date[]
 
     for day in start_date:end_date
-        base_time = ZonedDateTime(DateTime(day, Time(6, 0)), tz)
-
-        # Cover until 3:00 AM the following day
-        final_time = ZonedDateTime(DateTime(day + Day(1), Time(3, 0)), tz)
+        base_time  = ZonedDateTime(DateTime(day, Time(6,0)), tz)
+        final_time = ZonedDateTime(DateTime(day + Day(1), Time(3,0)), tz)
 
         while base_time <= final_time
             push!(observed_at, base_time)
-            push!(park_day_id, Date(base_time))  # Use local date, not UTC date
-            base_time += Minute(15)
+            push!(park_day_id, Date(base_time))  # local date
+            base_time += Minute(15)              # DST-safe with ZonedDateTime
         end
     end
 
     return DataFrame(park_day_id = park_day_id, observed_at = observed_at)
 end
+
 
 function main(attraction::Attraction)
     input_folder = joinpath(LOC_WORK, uppercase(attraction.code), "wait_times")
@@ -54,7 +61,7 @@ function main(attraction::Attraction)
     wait_time_types = attraction.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 
     if !isfile(input_file)
-        # @info("❌ Now new rows for $input_file")
+        @info("❌ Now new rows for $input_file")
         return
     end
 
