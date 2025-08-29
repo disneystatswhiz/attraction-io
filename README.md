@@ -135,6 +135,11 @@ main(attraction::Attraction)
 
 ---
 
+### 🔍 Viewing the live log on the EC2 Instance
+- sudo -iu ubuntu
+- cd /home/ubuntu/attraction-io/logs
+- tail -f pipeline_latest.log
+
 ### 🗓️ Crowd Calendar Processing
 
 - Per-observation clustering to infer park-level crowd levels
