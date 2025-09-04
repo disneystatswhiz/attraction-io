@@ -4,9 +4,6 @@
 
 using JSON3, Dates, DataFrames, CSV, Statistics, TimeZones
 
-const START_HOUR = 11
-const END_HOUR = 17
-
 # -------------------------------------------------------
 # Step 1: Compute daily averages
 # -------------------------------------------------------
@@ -31,7 +28,7 @@ function compute_daily_averages(outpath::String)
     end
 
     # Filter to 11am–5pm window
-    df = filter(row -> (hour(row.meta_observed_at) ≥ START_HOUR && hour(row.meta_observed_at) ≤ END_HOUR), df)
+    df = filter(row -> (hour(row.meta_observed_at) ≥ CALENDAR_START_HOUR && hour(row.meta_observed_at) ≤ CALENDAR_END_HOUR), df)
 
     # Group by day + entity and compute mean
     grouped = combine(groupby(df, [:id_park_day_id, :id_entity_code]),
