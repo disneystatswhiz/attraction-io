@@ -148,7 +148,7 @@ function get_timezone_for_park(park_code::AbstractString)::TimeZone
         error("Unknown park code: $park_code")
     end
 
-    return if property_code in ["wdw", "uor"]
+    return if property_code in ["wdw", "uor", "dc"]
         tz"America/New_York"
     elseif property_code in ["dlr", "ush"]
         tz"America/Los_Angeles"
@@ -162,7 +162,7 @@ end
 function get_timezone_for_property(property_code::AbstractString)::TimeZone
     property_code = lowercase(property_code)
 
-    return if property_code in ["wdw", "uor"]
+    return if property_code in ["wdw", "uor", "dc"]
         tz"America/New_York"
     elseif property_code in ["dlr", "ush"]
         tz"America/Los_Angeles"
