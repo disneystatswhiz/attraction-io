@@ -59,7 +59,7 @@ function get_standby_entities(prop::String)
     isfile(f) || return String[]
     df = CSV.read(f, DataFrame)
     df = df[.!ismissing.(df.submitted_posted_time) .| .!ismissing.(df.submitted_actual_time), :]
-    df = df[df.entity_code .!= "AK07", :]
+    # df = df[df.entity_code .!= "AK07", :]
     return collect(String.(unique(skipmissing(df.entity_code))))
 end
 
@@ -67,7 +67,7 @@ function get_priority_entities(prop::String)
     f = joinpath(ROOT, "input", "wait_times", "priority", prop, "current_fastpass.csv")
     isfile(f) || return String[]
     df = CSV.read(f, DataFrame)
-    df = df[df.FATTID .!= "AK06", :]
+    # df = df[df.FATTID .!= "AK06", :]
     return collect(String.(unique(skipmissing(df.FATTID))))
 end
 
