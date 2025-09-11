@@ -8,7 +8,7 @@ using CSV, DataFrames, Dates, Logging
 # --- Config (overridable from CLI or include) ---------------------------------
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
 if !@isdefined(PROPS);                  const PROPS = ["wdw","dlr","uor","ush","tdr"]; end
-if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 7; end
+if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 6; end
 if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 12.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 360; end     # 6h
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 300; end         # 5m
