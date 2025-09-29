@@ -7,9 +7,9 @@
 #    exit(1)
 #end
 
-const ENTITY_CODE = "ak07" #lowercase(ARGS[1])
-const PARK        = "ak" #lowercase(ARGS[2])
-const PROPERTY    = "wdw" #lowercase(ARGS[3])
+const ENTITY_CODE = "ia69" #lowercase(ARGS[1])
+const PARK        = "ia" #lowercase(ARGS[2])
+const PROPERTY    = "uor" #lowercase(ARGS[3])
 const QUEUE_TYPE  = "standby" #lowercase(ARGS[4])
 
 # ===================================================================================== #

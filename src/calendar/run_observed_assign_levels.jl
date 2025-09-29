@@ -14,7 +14,7 @@ using Dates, DataFrames, CSV, Statistics
 CODE = uppercase(ATTRACTION.code)
 
 AVG_PATH   = joinpath(LOC_WORK, CODE, "calendar", "observed_dailyavgs.csv")
-THRESH_PATH = joinpath(LOC_WORK, CODE, "already_on_s3", "forecasts_$CODE_calendar.csv")   # adjust to your actual thresholds file
+THRESH_PATH = joinpath(LOC_WORK, CODE, "already_on_s3", "forecasts_$(CODE)_calendar.csv")   # adjust to your actual thresholds file
 OUT_PATH   = joinpath(LOC_WORK, CODE, "calendar", "observed_crowdlevels.csv")
 
 # --- idempotence / skip rules -------------------------------------------------
