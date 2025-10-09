@@ -1,0 +1,2 @@
+# This file disables pipeline.sh from running automatically on boot.
+# Remove or delete this file to re-enable the auto-run.
