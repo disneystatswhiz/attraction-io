@@ -167,6 +167,7 @@ main(attraction::Attraction)
 - No global config — everything uses the `Attraction` struct
 - File paths follow strict naming conventions
 - Logs are styled and printed with custom `log_info`, `log_warn`, `log_success`
+- to disable running the pipeline on boot up of the ec2 instance add a blank file in the root repo called ".disable_on_boot" - helpful for debugging if the disk is full
 
 ---
 
