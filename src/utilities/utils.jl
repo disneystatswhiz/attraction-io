@@ -243,9 +243,9 @@ function cleanup_folders(pattern::String; base_dir::String = pwd(), delete_files
             if isfile(p)
                 try
                     rm(p; force=true)
-                    # @info "🧹 Deleted file: $p"
+                    @info "🧹 Deleted file: $p"
                 catch e
-                    # @warn "⚠️ Could not delete file $p — $(e.msg)"
+                    @warn "⚠️ Could not delete file $p — $(e.msg)"
                 end
             end
         end
@@ -260,9 +260,9 @@ function cleanup_folders(pattern::String; base_dir::String = pwd(), delete_files
         if isdir(p)
             try
                 rm(p; recursive=true, force=true)
-                # @info "🧹 Deleted folder: $p"
+                @info "🧹 Deleted folder: $p"
             catch e
-                # @warn "⚠️ Could not delete folder $p — $(e.msg)"
+                @warn "⚠️ Could not delete folder $p — $(e.msg)"
             end
         end
     end

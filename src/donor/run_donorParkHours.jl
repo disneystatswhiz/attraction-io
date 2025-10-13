@@ -78,7 +78,7 @@ function main()
     if isfile(output_file)
        return
     else 
-       # @info("Creating a donor park hours table...")
+       @info("Creating a donor park hours table...")
     end
 
     dimdate    = CSV.read(joinpath(LOC_DIM, "dimdate.csv"), DataFrame)

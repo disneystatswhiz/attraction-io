@@ -71,7 +71,7 @@ function run_entity_forecast_logger(attraction::Attraction)
 
     # If all forecast types are missing, skip this entity
     if all(x -> x === nothing, values(forecast_dict))
-        # @warn "⏭️ Skipping $entity_code — no forecasts available or imputed."
+        @warn "⏭️ Skipping $entity_code — no forecasts available or imputed."
         return
     end
 

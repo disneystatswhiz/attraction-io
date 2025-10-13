@@ -26,7 +26,7 @@ end
 dfs = DataFrame[]
 
 for file in csv_files
-    # @info "🔧 Reading park hours from $file"
+    @info "🔧 Reading park hours from $file"
     df = redirect_stderr(devnull) do
         CSV.read(file, DataFrame)
     end

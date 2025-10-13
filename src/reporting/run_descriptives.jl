@@ -9,7 +9,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
 
     path = joinpath(LOC_OUTPUT, uppercase(upper_code), "wait_times_$(upper_code)_$(suffix).csv")
     if !isfile(path)
-        # @warn "Skipping $path — file not found."
+        @warn "Skipping $path — file not found."
         return nothing
     end
 
@@ -111,7 +111,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
     cp(local_path, out_path; force=true)
     upload_file_to_s3(out_path, s3_path)
 
-    # @info "✅ Finished descriptives for $upper_code [$suffix]"
+    @info "✅ Finished descriptives for $upper_code [$suffix]"
 end
 
 # ----------------------------
@@ -126,6 +126,6 @@ for wait_type in wait_time_types
     if isfile(model_path)
         process_descriptives(ATTRACTION.code, wt_lower)
     else
-        # @info "⏭️ Skipping descriptives for $(ATTRACTION.code) [$wt_lower] — model not found at $model_path"
+        @info "⏭️ Skipping descriptives for $(ATTRACTION.code) [$wt_lower] — model not found at $model_path"
     end
 end

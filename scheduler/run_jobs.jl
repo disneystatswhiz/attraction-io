@@ -10,9 +10,9 @@ if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.activ
 if !@isdefined(PROPS);                  const PROPS = ["wdw","dlr","uor","ush","tdr"]; end
 if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 6; end
 if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 18.0; end
-if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 720; end     # 12h
+if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 1440; end     # 24h
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 300; end         # 5m
-if !@isdefined(ENTITY_TIMEOUT_S);       const ENTITY_TIMEOUT_S = 45*60; end   # 45m
+if !@isdefined(ENTITY_TIMEOUT_S);       const ENTITY_TIMEOUT_S = 25*60; end   # 25m
 
 # --- Setup --------------------------------------------------------------------
 include(joinpath(ROOT, "src", "main_setup.jl"))  # paths, logging, etc.

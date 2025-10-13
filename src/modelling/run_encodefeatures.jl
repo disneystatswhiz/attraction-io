@@ -28,7 +28,7 @@ function read_wait_time_data(attraction::Attraction)
 
             combined_df = vcat(combined_df, df_wt; cols = :union)
         else
-            # @warn("Wait time file not found: $file_path")
+            @warn("Wait time file not found: $file_path")
         end
     end
 
@@ -47,7 +47,7 @@ function encode_and_save(df::DataFrame, attraction::Attraction)
         df_wt = df_encoded[df_encoded.meta_wait_time_type .== wt_type, :]
         output_path = joinpath(LOC_WORK, entity_code, "wait_times", "to_be_modelled_$(wt_lower).csv")
         CSV.write(output_path, df_wt)
-        # @info("📤 Encoded data written for $wt_type to $output_path")
+        @info("📤 Encoded data written for $wt_type to $output_path")
     end
 
     return df_encoded
@@ -68,7 +68,7 @@ function main(attraction::Attraction)
     end, wait_time_types)
 
     if all_exist
-        # @info("✅ Encoded files already exist for $entity_code — skipping encoding.")
+        @info("✅ Encoded files already exist for $entity_code — skipping encoding.")
         return nothing
     end
 
@@ -80,7 +80,7 @@ function main(attraction::Attraction)
     end, wait_time_types)
 
     if !any_file_exists
-        # @info("No wait time files found for $entity_code. Cannot proceed with encoding.")
+        @info("No wait time files found for $entity_code. Cannot proceed with encoding.")
         return nothing
     end
 
