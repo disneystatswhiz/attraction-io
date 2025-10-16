@@ -35,7 +35,7 @@ function sync_from_s3_folder(
         run(Cmd(cmd_parts))
         return true
     catch e
-        @warn "S3 folder sync failed" s3path localpath exception = e
+        # @warn "S3 folder sync failed" s3path localpath exception = e
         return false
     end
 end
@@ -69,7 +69,7 @@ function download_file_from_s3(s3file::String, localfile::String)::Bool
         run(`aws s3 cp $s3file $localfile --only-show-errors`)
         return true
     catch e
-        @warn "❌ S3 file download failed" s3file localfile exception = e
+        # @warn "❌ S3 file download failed" s3file localfile exception = e
         return false
     end
 end
@@ -95,10 +95,10 @@ function upload_file_to_s3(localfile::String, s3file::String)::Bool
 
     try
         run(`aws s3 cp $localfile $s3file --only-show-errors`)
-        @info "✅ S3 file uploaded" localfile s3file
+        # @info "✅ S3 file uploaded" localfile s3file
         return true
     catch e
-        @warn "S3 file upload failed" localfile s3file exception = e
+        # @warn "S3 file upload failed" localfile s3file exception = e
         return false
     end
 end
@@ -143,7 +143,7 @@ function get_last_modified_s3(bucket::String, key::String)::Union{Date, Nothing}
         date_part = first(split(output, "T"))  # Keep just the "YYYY-MM-DD" part
         return Date(date_part, dateformat"yyyy-mm-dd")
     catch e
-        @warn "Failed to get last modified date" bucket key exception = e
+        # @warn "Failed to get last modified date" bucket key exception = e
         return nothing
     end
 end

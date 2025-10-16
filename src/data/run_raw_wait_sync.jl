@@ -14,7 +14,7 @@ if !isdefined(@__MODULE__, :ENABLE_UOR_PRIORITY)
     @eval const ENABLE_UOR_PRIORITY = false
 end
 
-@info "⏳ Syncing raw wait-time inputs from S3 → local..."
+# @info "⏳ Syncing raw wait-time inputs from S3 → local..."
 
 for prop in PROPERTIES
 
@@ -41,4 +41,4 @@ for prop in PROPERTIES
     end
 end
 
-@info "✅ Raw wait-time sync complete."
+# @info "✅ Raw wait-time sync complete."

@@ -34,18 +34,18 @@ function main()
 
     # If queue_type is priority, skip this step
     if ATTRACTION.queue_type == "priority"
-        @info("🛑 Skipping forecasts_dailyavgs_w_levels.csv for priority queue.")
+        # @info("🛑 Skipping forecasts_dailyavgs_w_levels.csv for priority queue.")
         return
     end
 
     if !isfile(input_avgs) || !isfile(input_thresh)
-        @warn("❌ Missing required input files.")
+        # @warn("❌ Missing required input files.")
         return
     end
 
     # If output file already exists, skip this step
     if isfile(output_path)
-        @info("ℹ️ Output file already exists — skipping")
+        # @info("ℹ️ Output file already exists — skipping")
         return
     end
 
@@ -56,7 +56,7 @@ function main()
     required_thresh = ["entity_code", "cl1_max", "cl9_max"]
 
     if !all(x -> x in names(df_avgs), required_avgs) || !all(x -> x in names(df_thresh), required_thresh)
-        @warn"❌ Missing required columns in input files."
+        # @warn"❌ Missing required columns in input files."
         return
     end
 
@@ -64,7 +64,7 @@ function main()
     df.crowd_level = [assign_crowd_level(avg, row) for (avg, row) in zip(df.avg_posted_11am_to_5pm, eachrow(df))]
     sort!(df, [:entity_code, :id_park_day_id])
     CSV.write(output_path, df)
-    @info("✅ Wrote forecasts_dailyavgs_w_levels.csv to $output_path")
+    # @info("✅ Wrote forecasts_dailyavgs_w_levels.csv to $output_path")
 
     # --- Sync and send to S3 ---
     synced = sync_calendar_forecasts(ATTRACTION.code)

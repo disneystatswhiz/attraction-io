@@ -84,12 +84,12 @@ julia --project="$JULIA_PROJECT" -e '
         Pkg.instantiate(; verbose=true)
         Pkg.precompile()
     catch e
-        @warn "Pkg bootstrap failed, clearing compiled cache and retrying" exception=(e, catch_backtrace())
+        # @warn "Pkg bootstrap failed, clearing compiled cache and retrying" exception=(e, catch_backtrace())
         cache = joinpath(homedir(), ".julia", "compiled", "v$(VERSION.major).$(VERSION.minor)")
         try
             run(`rm -rf $cache`)
         catch err
-            @warn "Failed to remove compiled cache" exception=(err, catch_backtrace())
+            # @warn "Failed to remove compiled cache" exception=(err, catch_backtrace())
         end
         Pkg.instantiate(; verbose=true)
         Pkg.precompile()

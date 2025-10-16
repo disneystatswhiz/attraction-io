@@ -17,7 +17,7 @@ function generate_thresholds(df::DataFrame)::DataFrame
         waits = collect(skipmissing(subdf.avg_posted_11am_to_5pm))
 
         if length(waits) < 10
-            @warn("⚠️ Skipping $code — <10 days")
+            # @warn("⚠️ Skipping $code — <10 days")
             push!(out, [code, today_str, fill(999.0, 9)...])
             continue
         end
@@ -30,13 +30,13 @@ function generate_thresholds(df::DataFrame)::DataFrame
             sort!(grouped, :level)
             t = grouped.max_wait
             if length(t) < 9
-                @warn("⚠️ $code had <9 thresholds — fallback")
+                # @warn("⚠️ $code had <9 thresholds — fallback")
                 push!(out, [code, today_str, fill(999.0, 9)...])
             else
                 push!(out, [code, today_str, round.(t[1:9], digits=1)...])
             end
         catch e
-            @warn("⚠️ Error clustering $code: $e — fallback")
+            # @warn("⚠️ Error clustering $code: $e — fallback")
             push!(out, [code, today_str, fill(999.0, 9)...])
         end
     end
@@ -62,7 +62,7 @@ function main()
     end
 
     if ATTRACTION.queue_type == "priority"
-        @info("🛑 Skipping forecasts_thresholds.csv for priority queue.")
+        # @info("🛑 Skipping forecasts_thresholds.csv for priority queue.")
         return
     end
 
@@ -74,7 +74,7 @@ function main()
 
     thresholds = generate_thresholds(df)
     CSV.write(output_path, thresholds)
-    @info("✅ Wrote per-entity thresholds to $output_path")
+    # @info("✅ Wrote per-entity thresholds to $output_path")
 end
 
 main()

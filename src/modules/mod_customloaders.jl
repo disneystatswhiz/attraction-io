@@ -60,7 +60,7 @@ function get_wait_time_filetype(csv_filename_path::String, queue_type::String)::
         end
     end
 
-    @warn "❓ Could not determine file type from: $csv_filename_path"
+    # @warn "❓ Could not determine file type from: $csv_filename_path"
     return nothing
 end
 
@@ -78,7 +78,7 @@ function process_all_wait_time_files(path::String, entity_code::String, queue_ty
     elseif file_type == "Standby"
         return process_standby_file(path, entity_code)
     else
-        @warn "⚠️ Skipping unrecognized file type for $queue_type: $path"
+        # @warn "⚠️ Skipping unrecognized file type for $queue_type: $path"
         return DataFrame()
     end
 end

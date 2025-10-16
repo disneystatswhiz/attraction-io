@@ -18,7 +18,7 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
     df_score = filter(row -> ismissing(row.target) && row.meta_observed_at > ZonedDateTime(now(), tz"UTC"), df)
 
     if isempty(df_train)
-        @error("❌ No training data for $entity_code ($wait_type)")
+        # @error("❌ No training data for $entity_code ($wait_type)")
         return nothing
     end
 
@@ -46,7 +46,7 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
         watchlist = ()
     )
 
-    # @info("📊 Trained model on $(nrow(df_train)) rows | GPU: $use_gpu | $(length(predictors)) predictors")
+    # # @info("📊 Trained model on $(nrow(df_train)) rows | GPU: $use_gpu | $(length(predictors)) predictors")
 
     # Save feature importance
     importance_df = DataFrame(
@@ -55,7 +55,7 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
     )
     imp_path = joinpath(temp_folder, "feature_importance_$(wait_type_lower).csv")
     CSV.write(imp_path, importance_df)
-    # @info("📈 Feature importance saved to $imp_path")
+    # # @info("📈 Feature importance saved to $imp_path")
 
     # Score future rows
     if !isempty(df_score)
@@ -65,12 +65,12 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
         df_score.meta_wait_time_type = fill(wait_type, nrow(df_score))  # ✅ ADD THIS
         scored_path = joinpath(temp_folder, "scored_$(wait_type_lower).csv")
         CSV.write(scored_path, df_score)
-        # @info("🔮 Predictions saved to $scored_path")
+        # # @info("🔮 Predictions saved to $scored_path")
     else
-        @warn("⚠️ No scoring rows for $entity_code ($wait_type)")
+        # @warn("⚠️ No scoring rows for $entity_code ($wait_type)")
     end
 
-    # @info("✅ Training complete for $entity_code ($wait_type)")
+    # # @info("✅ Training complete for $entity_code ($wait_type)")
     return booster
 end
 
@@ -88,14 +88,14 @@ function main(attraction::Attraction)
         model_path = joinpath(temp_folder, "model_$(wt_lower).bst")
 
         if !isfile(input_path)
-            @warn("⚠️ Skipping $wait_type — input file not found: $input_path")
+            # @warn("⚠️ Skipping $wait_type — input file not found: $input_path")
             continue
         end
 
         df = CSV.read(input_path, DataFrame)
 
         if "meta_wait_time_type" ∉ names(df)
-            @warn("⚠️ Skipping $wait_type — no 'meta_wait_time_type' column in input file.")
+            # @warn("⚠️ Skipping $wait_type — no 'meta_wait_time_type' column in input file.")
             continue
         end
 
@@ -103,14 +103,14 @@ function main(attraction::Attraction)
         df = filter(row -> lowercase(row.meta_wait_time_type) == lowercase(wait_type), df)
 
         if isempty(df)
-            @warn("⚠️ Skipping $wait_type — no matching rows for 'meta_wait_time_type == $wait_type'")
+            # @warn("⚠️ Skipping $wait_type — no matching rows for 'meta_wait_time_type == $wait_type'")
             continue
         end
 
         booster = train_model(df, attraction, wait_type)
         if booster !== nothing
             XGBoost.save(booster, model_path)
-            @info("💾 Model saved to $model_path")
+            # @info("💾 Model saved to $model_path")
         end
     end
 end

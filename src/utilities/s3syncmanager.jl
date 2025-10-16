@@ -99,7 +99,7 @@ function sync_calendar_forecasts(entity_id::String)
     if exists
         download_file_from_s3(s3_path, local_file)
     else
-        @info "⚠️ Encoded file not found in S3, will create from scratch: $s3_path"
+        # @info "⚠️ Encoded file not found in S3, will create from scratch: $s3_path"
     end
 
     return (local_file=local_file, exists=exists)

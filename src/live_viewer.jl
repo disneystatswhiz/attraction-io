@@ -32,7 +32,7 @@ function sync_from_s3_folder(s3path::String, localpath::String; flags::Vector{St
     cmd  = build_cmd(vcat(base, flags))
     ok, _out, err = run_cmd(cmd)
     if !ok && !isempty(strip(err))
-        @warn "aws s3 sync failed" cmd=join(cmd.exec," ") error=err
+        # @warn "aws s3 sync failed" cmd=join(cmd.exec," ") error=err
     end
     return ok
 end
@@ -54,7 +54,7 @@ function s3_latest_csv_key(s3path::String)
     cmd = build_cmd(["aws","s3","ls", s3path, "--recursive"])
     ok, out, err = run_cmd(cmd)
     if !ok
-        @warn "aws s3 ls failed" error=err
+        # @warn "aws s3 ls failed" error=err
         return nothing
     end
     latest_dt = DateTime(0); latest_key = nothing
@@ -81,7 +81,7 @@ function s3_cp_single(s3path::String, key::String, localdir::String)
     cmd    = build_cmd(["aws","s3","cp", s3uri, target, "--only-show-errors"])
     ok, _out, err = run_cmd(cmd)
     if !ok
-        @warn "aws s3 cp failed" obj=s3uri error=err
+        # @warn "aws s3 cp failed" obj=s3uri error=err
     end
     return ok, target
 end

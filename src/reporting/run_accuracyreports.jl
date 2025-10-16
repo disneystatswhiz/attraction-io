@@ -74,7 +74,7 @@ function process_accuracy_report(
     # Only include relevant rows
     filter!(row -> !ismissing(row.abs_error), df_joined)
     if nrow(df_joined) == 0
-        @warn "No joined accuracy data for $attraction_code [$wait_time_type]."
+        # @warn "No joined accuracy data for $attraction_code [$wait_time_type]."
         return nothing
     end
 
@@ -164,7 +164,7 @@ function process_accuracy_report(
     cp(local_path, out_path; force=true)
     upload_file_to_s3(out_path, s3_path)
 
-    @info "✅ Finished accuracy report for $upper_code [$suffix]"
+    # @info "✅ Finished accuracy report for $upper_code [$suffix]"
 end
 
 # ---------------------------------------------------------

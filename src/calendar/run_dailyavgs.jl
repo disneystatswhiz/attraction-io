@@ -17,7 +17,7 @@ function compute_daily_averages(outpath::String)
     mkpath(dirname(output_path))
 
     if !isfile(forecast_path)
-        @warn("❌ Forecast file not found at $forecast_path")
+        # @warn("❌ Forecast file not found at $forecast_path")
         return
     end
 
@@ -26,7 +26,7 @@ function compute_daily_averages(outpath::String)
 
     required_cols = ["meta_observed_at", "id_entity_code", "predicted_wait_time", "id_park_day_id"]
     if !all(col -> col in names(df), required_cols)
-        @warn("❌ Forecast file missing one or more required columns.")
+        # @warn("❌ Forecast file missing one or more required columns.")
         return
     end
 
@@ -45,7 +45,7 @@ function compute_daily_averages(outpath::String)
     rename!(grouped, :id_entity_code => "entity_code")
 
     CSV.write(output_path, grouped)
-    @info("📤 Wrote daily averages to $output_path")
+    # @info("📤 Wrote daily averages to $output_path")
 
 end
 
@@ -56,13 +56,13 @@ function main(outpath::String)
     
     # Check if forecasts_dailyavgs.csv already exists
     if isfile(outpath)
-        @info("🛑 forecasts_dailyavgs.csv already exists. Skipping sync.")
+        # @info("🛑 forecasts_dailyavgs.csv already exists. Skipping sync.")
         return
     end
 
     # Check if this is a priority queue
     if ATTRACTION.queue_type == "priority"
-        @info("🛑 Skipping forecasts_dailyavgs.csv for priority queue.")
+        # @info("🛑 Skipping forecasts_dailyavgs.csv for priority queue.")
         return
     end
 

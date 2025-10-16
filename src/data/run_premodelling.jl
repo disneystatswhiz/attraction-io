@@ -41,7 +41,7 @@ function main()
 
         # Skip if no new data to append and existing file already exists
         if nrow(df_new) == 0 && isfile(input_path)
-            @info "⚠️ No new $wt_type data for $entity_code — skipping write and upload."
+            # @info "⚠️ No new $wt_type data for $entity_code — skipping write and upload."
             continue
         end
 

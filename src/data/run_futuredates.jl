@@ -61,7 +61,7 @@ function main(attraction::Attraction)
     wait_time_types = attraction.queue_type == "priority" ? ["PRIORITY"] : ["POSTED", "ACTUAL"]
 
     if !isfile(input_file)
-        @info("❌ No new rows for $input_file")
+        # @info("❌ No new rows for $input_file")
         return
     end
 

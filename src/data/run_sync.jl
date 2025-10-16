@@ -17,7 +17,7 @@ for wt in getproperty(ATTRACTION, Val(:wait_time_types))
     if file_exists_in_s3(s3_path)
         download_file_from_s3(s3_path, local_file)
     else
-        @info "⚠️ Encoded file not found in S3, will create from scratch: $s3_path"
+        # @info "⚠️ Encoded file not found in S3, will create from scratch: $s3_path"
     end
 end
 
@@ -36,7 +36,7 @@ for wt in getproperty(ATTRACTION, Val(:wait_time_types))
     if file_exists_in_s3(s3_path)
         download_file_from_s3(s3_path, local_file)
     else
-        @info "⚠️ Encoded file not found in S3, will create from scratch: $s3_path"
+        # @info "⚠️ Encoded file not found in S3, will create from scratch: $s3_path"
     end
 end
 
