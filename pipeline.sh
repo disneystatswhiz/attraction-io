@@ -122,6 +122,30 @@ trap finish EXIT
 rm -rf input output temp work
 mkdir -p input output temp work
 
-# ---------- Launch the scheduler ----------
+# ---------- Launch the scheduler with live output + heartbeat ----------
 echo "Starting Julia launcher at $(date -Is)…"
-stdbuf -oL -eL julia --project="$JULIA_PROJECT" scheduler/run_jobs.jl
+
+# Force line-buffered output so logs flush immediately to console
+if command -v script >/dev/null 2>&1; then
+  script -q -f -c "julia --project=\"$JULIA_PROJECT\" scheduler/run_jobs.jl" /dev/null &
+else
+  stdbuf -oL -eL julia --project="$JULIA_PROJECT" scheduler/run_jobs.jl &
+fi
+JPID=$!
+
+# --- Heartbeat: print a timestamp every minute so monitor sessions stay live ---
+(
+  while kill -0 "$JPID" 2>/dev/null; do
+    echo "[hb] $(date -Is) — pipeline still running..."
+    sleep 60
+  done
+) &
+HBPID=$!
+
+# Wait for Julia to finish, then clean up the heartbeat
+wait "$JPID"; RC=$?
+kill "$HBPID" 2>/dev/null || true
+wait "$HBPID" 2>/dev/null || true
+
+echo "Julia process finished with exit code $RC"
+exit "$RC"
