@@ -69,6 +69,8 @@ include(joinpath(ROOT, "src", "reporting", "run_daily_wait_time_curve.jl"))
 
 elapsed_modelling = (time_ns() - start_time_pipeline) / 1e9
 @info "✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes."
+flush(stdout)
+flush(stderr)
 
 if !(ATTRACTION.code in [""])
     cleanup_folders(ATTRACTION.code, base_dir=ROOT)
