@@ -3,10 +3,6 @@
 # -------------------------------------------------------------
 using CSV, DataFrames, Dates, Logging, TimeZones
 
-# ---- Dedupe configuration ---------------------------------------------------
-# Adjust keys as needed if your rows are uniquely identified by more columns.
-const DEDUPE_COLS = [:observed_at, :wait_time_type]
-
 # ---- Helpers ----------------------------------------------------------------
 # Normalize timestamps and drop exact duplicates *in-place*.
 function normalize_and_dedupe!(df::DataFrame)
@@ -18,14 +14,14 @@ function normalize_and_dedupe!(df::DataFrame)
         ZonedDateTime(DateTime(replace(string(x), r"\.0$" => "")), ATTRACTION.timezone, 2)
         for x in df.observed_at
     ]
-    unique!(df, cols = DEDUPE_COLS)
+    unique!(df)
     return df
 end
 
 # Show status every 10 files (or first/last)
 function show_progress(i::Int, total::Int, file::String)
     if i == 1 || i % 10 == 0 || i == total
-        # @info "Processing file $i of $total: $file"
+        @info "Processing file $i of $total: $file"
     end
 end
 
@@ -64,19 +60,19 @@ function run_wait_time_ingestion(
             end
 
         catch e
-            # @warn "⚠️ Failed to process $file: $e"
+            @warn "⚠️ Failed to process $file: $e"
         end
     end
 
     # ---- Global checks & final dedupe ---------------------------------------
     if nrow(combined_df) == 0
-        # @warn "⚠️ No valid data ingested for $entity_code"
+        @warn "⚠️ No valid data ingested for $entity_code"
         return
     end
 
     # Already normalized per-file; if inputs can mix types, you can re-normalize here.
     # unique! again to catch cross-file duplicates:
-    unique!(combined_df, cols = DEDUPE_COLS)
+    unique!(combined_df)
 
     # ---- Final ordering & write ---------------------------------------------
     sort!(combined_df, :observed_at)
