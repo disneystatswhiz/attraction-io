@@ -21,7 +21,7 @@ end
 # Show status every 10 files (or first/last)
 function show_progress(i::Int, total::Int, file::String)
     if i == 1 || i % 10 == 0 || i == total
-        @info "Processing file $i of $total: $file"
+        # @info "Processing file $i of $total: $file"
     end
 end
 
@@ -60,13 +60,13 @@ function run_wait_time_ingestion(
             end
 
         catch e
-            @warn "⚠️ Failed to process $file: $e"
+            # @warn "⚠️ Failed to process $file: $e"
         end
     end
 
     # ---- Global checks & final dedupe ---------------------------------------
     if nrow(combined_df) == 0
-        @warn "⚠️ No valid data ingested for $entity_code"
+        # @warn "⚠️ No valid data ingested for $entity_code"
         return
     end
 
