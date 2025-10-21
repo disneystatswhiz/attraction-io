@@ -7,7 +7,7 @@
 #    exit(1)
 #end
 
-const ENTITY_CODE = "mk01"
+const ENTITY_CODE = "mk141"
 const PARK        = "mk"
 const PROPERTY    = "wdw"
 const QUEUE_TYPE  = "standby"
