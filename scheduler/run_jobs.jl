@@ -9,7 +9,7 @@ using CSV, DataFrames, Dates, Logging
 if !@isdefined(ROOT);                   const ROOT  = abspath(dirname(Base.active_project())); end
 if !@isdefined(PROPS);                  const PROPS = ["wdw","dlr","uor","ush","tdr"]; end
 if !@isdefined(MAX_PARALLEL_PER_GROUP); const MAX_PARALLEL_PER_GROUP = 6; end
-if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 13.0; end
+if !@isdefined(FRESHNESS_WINDOW_HOURS); const FRESHNESS_WINDOW_HOURS = 16.0; end
 if !@isdefined(MAX_WAIT_MINUTES);       const MAX_WAIT_MINUTES = 420; end     # 7h
 if !@isdefined(POLL_SECONDS);           const POLL_SECONDS = 300; end         # 5m
 if !@isdefined(ENTITY_TIMEOUT_S);       const ENTITY_TIMEOUT_S = 25*60; end   # 25m
