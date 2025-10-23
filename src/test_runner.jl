@@ -7,7 +7,7 @@
 #    exit(1)
 #end
 
-const ENTITY_CODE = "mk25"
+const ENTITY_CODE = "mk17"
 const PARK        = "mk"
 const PROPERTY    = "wdw"
 const QUEUE_TYPE  = "standby"
@@ -19,9 +19,7 @@ ROOT = abspath(joinpath(@__DIR__, ".."))
 start_time_pipeline = time_ns()
 
 include(joinpath(ROOT, "src", "utilities", "utility_setup.jl"))
-include(joinpath(ROOT, "src", "modules", "mod_customloaders.jl"))
 include(joinpath(ROOT, "src", "modules", "mod_encoders.jl"))
-using .CustomLoaders
 using .EncodeFeatures
 
 # ===================================================================================== #
@@ -30,7 +28,6 @@ using .EncodeFeatures
 
 include(joinpath(ROOT, "src", "data", "run_set_attraction.jl"))
 include(joinpath(ROOT, "src", "data", "run_sync.jl"))
-include(joinpath(ROOT, "src", "data", "run_tracking.jl"))
 include(joinpath(ROOT, "src", "data", "run_wait_time_ingestion.jl"))
 include(joinpath(ROOT, "src", "data", "run_futuredates.jl"))
 include(joinpath(ROOT, "src", "data", "run_features.jl"))
@@ -68,7 +65,7 @@ include(joinpath(ROOT, "src", "reporting", "run_daily_wait_time_curve.jl"))
 # ===================================================================================== #
 
 elapsed_modelling = (time_ns() - start_time_pipeline) / 1e9
-@info "✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes."
+# @info "✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes."
 flush(stdout)
 flush(stderr)
 

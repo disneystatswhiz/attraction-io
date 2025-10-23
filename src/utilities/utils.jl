@@ -103,29 +103,24 @@ Smart parser for mixed-format ISO8601 strings into `ZonedDateTime`.
 
 Returns `Vector{Union{ZonedDateTime, Missing}}`.
 """
-# THIS FUNCTION NEEDS TESTING - JUST A PLACEHOLDER FOR FUTURE DEV #
-function parse_zoneddatetimes_smart(input_vector::AbstractVector; timezone=TimeZone("America/New_York"))
+function parse_zoneddatetimes_smart(v::AbstractVector; timezone=TimeZone("America/New_York"))
+    # 1) Try the built-in ISO parser (handles ±HH:MM offsets, with/without milliseconds)
+    # 2) Fallback: strip colon in offset, then parse with explicit format
+    fmt_nom = dateformat"yyyy-mm-ddTHH:MM:SSzzz"  # <-- months 'mm', minutes 'MM'
 
-    fmt_simple = DateFormat("yyyy-mm-ddTHH:MM:SS.ssszzz")
-    fmt_clean  = DateFormat("yyyy-MM-ddTHH:MM:SSzzz")
-
-    return [try
-        if x isa Missing
-            missing
-        elseif x isa ZonedDateTime
-            x
-        else
-            str = string(x)
-            str_fixed = replace(str, r"([+-]\d{2}):(\d{2})" => s"\1\2")
-            if occursin('.', str_fixed)
-                ZonedDateTime(str_fixed, fmt_simple, timezone)
-            else
-                ZonedDateTime(str_fixed, fmt_clean)
-            end
-        end
-    catch
-        missing
-    end for x in input_vector]
+    [ x isa Missing ? missing :
+      x isa ZonedDateTime ? x :
+      try
+          ZonedDateTime(String(x))  # ISO-8601, very permissive
+      catch
+          try
+              s = replace(String(x), r"([+\-]\d{2}):(\d{2})" => s"\1\2") # -04:00 → -0400
+              ZonedDateTime(s, fmt_nom)
+          catch
+              missing
+          end
+      end
+      for x in v ]
 end
 
 

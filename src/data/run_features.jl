@@ -29,7 +29,13 @@ function main()
     end
 
     df = CSV.read(local_file_path, DataFrame)
-    df.observed_at = parse_zoneddatetimes_simple(df.observed_at)
+    parsed = parse_zoneddatetimes_smart(df.observed_at; timezone = ATTRACTION.timezone)
+    bad = ismissing.(parsed)
+    if any(bad)
+        # @info "features: dropping $(count(bad)) rows with unparsable observed_at"
+    end
+    df = df[.!bad, :]
+    df.observed_at = convert(Vector{ZonedDateTime}, parsed[.!bad])
 
     # -------------------------------------------------------------------------------------
     # Add features

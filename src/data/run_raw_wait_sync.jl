@@ -1,44 +1,64 @@
-# ------------------------------------------------------------------------
-# run_raw_wait_sync.jl — Call s3utils/s3manager to sync raw wait-time files
-# ------------------------------------------------------------------------
+# -----------------------------------------------------------
+# run_raw_wait_sync.jl — Sync unified fact table + load to memory
+# -----------------------------------------------------------
+using DataFrames, Parquet
 
-using Dates
+# We rely on:
+# - LOC_INPUT           (from setup/utilities)
+# - download_file_from_s3(s3file, localfile)::Bool
 
-# Properties to sync once per main_setup run
-if !isdefined(@__MODULE__, :PROPERTIES)
-    @eval const PROPERTIES = ["wdw", "dlr", "uor", "ush", "tdr"]
-end
+const FACT_S3_PATH = "s3://touringplans_stats/stats_work/fact_tables/wait_time_fact_table.parquet"
+const OBS_REPORT_S3_PATH = "s3://touringplans_stats/stats_work/fact_tables/latest_obs_report.csv"
+const FACT_LOCAL_PATH = joinpath(LOC_INPUT, "wait_times", "wait_time_fact_table.parquet")
+const OBS_LOCAL_PATH  = joinpath(LOC_INPUT, "wait_times", "latest_obs_report.csv")
 
-# Toggle priority for UOR if/when needed
-if !isdefined(@__MODULE__, :ENABLE_UOR_PRIORITY)
-    @eval const ENABLE_UOR_PRIORITY = false
-end
-
-# @info "⏳ Syncing raw wait-time inputs from S3 → local..."
-
-for prop in PROPERTIES
-
-    # Standby (always)
-    s3_wait   = "s3://touringplans_stats/export/wait_times/$prop/"
-    loc_wait  = joinpath(LOC_INPUT, "wait_times", prop)
-    mkpath(loc_wait)
-    ok1 = sync_from_s3_folder(
-        s3_wait, loc_wait;
-        exclude = ["*"],
-        include = ["*.csv"],   # narrow if desired, e.g., ["current_wait.csv", "*.csv"]
-    )
-
-    # Priority (respect UOR toggle)
-    if prop != "uor" || ENABLE_UOR_PRIORITY
-        s3_prio  = "s3://touringplans_stats/export/fastpass_times/$prop/"
-        loc_prio = joinpath(LOC_INPUT, "wait_times", "priority", prop)
-        mkpath(loc_prio)
-        ok2 = sync_from_s3_folder(
-            s3_prio, loc_prio;
-            exclude = ["current_test*"],
-            include = ["*.csv"],  # or just ["current_fastpass.csv"] if you want minimal
-        )
+# -----------------------------------------------------------
+# Sync helpers
+# -----------------------------------------------------------
+function sync_wait_time_fact_table!()::Bool
+    mkpath(dirname(FACT_LOCAL_PATH))
+    ok = download_file_from_s3(FACT_S3_PATH, FACT_LOCAL_PATH)
+    if ok && isfile(FACT_LOCAL_PATH) && filesize(FACT_LOCAL_PATH) > 0
+        # @info "📥 Synced fact table → $FACT_LOCAL_PATH ($(round(filesize(FACT_LOCAL_PATH)/1_000_000; digits=1)) MB)"
+        return true
+    else
+        # @warn "❌ Fact table sync failed or file empty at $FACT_LOCAL_PATH"
+        return false
     end
 end
 
-# @info "✅ Raw wait-time sync complete."
+function sync_latest_obs_report!()::Bool
+    mkpath(dirname(OBS_LOCAL_PATH))
+    ok = download_file_from_s3(OBS_REPORT_S3_PATH, OBS_LOCAL_PATH)
+    if ok && isfile(OBS_LOCAL_PATH) && filesize(OBS_LOCAL_PATH) > 0
+        # @info "📥 Synced latest_obs_report → $OBS_LOCAL_PATH"
+        return true
+    else
+        # @warn "❌ latest_obs_report sync failed or file empty at $OBS_LOCAL_PATH"
+        return false
+    end
+end
+
+# -----------------------------------------------------------
+# Load fact table (into memory)
+# -----------------------------------------------------------
+function load_wait_time_fact_table()::DataFrame
+    isfile(FACT_LOCAL_PATH) || throw(ArgumentError("Fact table missing locally at $FACT_LOCAL_PATH"))
+    # @info "🧠 Loading wait_time_fact_table into memory..."
+    df = DataFrame(Parquet.read_parquet(FACT_LOCAL_PATH))
+    # @info "✅ Loaded $(nrow(df)) rows, $(ncol(df)) columns."
+    return df
+end
+
+# -----------------------------------------------------------
+# Run immediately when included
+# -----------------------------------------------------------
+if sync_wait_time_fact_table!()
+    global DATA_FACT = load_wait_time_fact_table()
+else
+    error("❌ Could not sync fact table from S3 — aborting pipeline.")
+end
+
+if !sync_latest_obs_report!()
+    # @warn "⚠️ Proceeding without updated latest_obs_report."
+end
