@@ -4,7 +4,10 @@
 
 using Dates
 
-ROOT = dirname(@__DIR__)
+if !isdefined(@__MODULE__, :ROOT)
+    const ROOT = dirname(@__DIR__)
+end
+
 SETUP_INPUT = joinpath(ROOT, "input", "dimEntity.csv")  # or another stable output
 
 if isfile(SETUP_INPUT)

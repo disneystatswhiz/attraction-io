@@ -7,10 +7,10 @@
 #    exit(1)
 #end
 
-const ENTITY_CODE = "mk17"
-const PARK        = "mk"
-const PROPERTY    = "wdw"
-const QUEUE_TYPE  = "standby"
+const ENTITY_CODE = "ak01"
+#const PARK        = "ak"
+#const PROPERTY    = "wdw"
+#const QUEUE_TYPE  = "standby"
 
 # ===================================================================================== #
 # ------------------------- Initial Setup and Modules --------------------------------- #
@@ -65,9 +65,7 @@ include(joinpath(ROOT, "src", "reporting", "run_daily_wait_time_curve.jl"))
 # ===================================================================================== #
 
 elapsed_modelling = (time_ns() - start_time_pipeline) / 1e9
-# @info "✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes."
-flush(stdout)
-flush(stderr)
+log_header("✅ Modelling completed for $(ATTRACTION.code) - $(ATTRACTION.name) in $(round(elapsed_modelling / 60, digits=2)) minutes.")
 
 if !(ATTRACTION.code in [ENTITY_CODE])
     cleanup_folders(ATTRACTION.code, base_dir=ROOT)
