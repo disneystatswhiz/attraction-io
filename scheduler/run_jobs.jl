@@ -95,6 +95,29 @@ function select_entities_needing_runs(df::DataFrame; window_days::Int=2)
     return unique(lowercase.(df[!, "entity_code"][mask]))
 end
 
+# ---------- Python fact-table refresh (Step 0) ----------
+# Detect a venv if you have one; otherwise use system python.
+const PY_BIN = let v = joinpath(ROOT, "venv")
+    if Sys.iswindows()
+        isfile(joinpath(v, "Scripts", "python.exe")) ? joinpath(v, "Scripts", "python.exe") : "python"
+    else
+        isfile(joinpath(v, "bin", "python")) ? joinpath(v, "bin", "python") : "python3"
+    end
+end
+
+const FACT_DIR = joinpath(ROOT, "src", "fact_table")
+const PY_MAIN  = joinpath(FACT_DIR, "main.py")
+
+function run_py_main!()
+    isfile(PY_MAIN) || error("Missing Python orchestrator: $PY_MAIN")
+    # run from the fact_table folder so relative paths inside Python match
+    cd(FACT_DIR) do
+        cmd = `$(PY_BIN) $(PY_MAIN)`
+        ok = Base.success(pipeline(cmd, stdout=stdout, stderr=stderr))
+        ok || error("Python fact-table refresh failed (main.py).")
+    end
+end
+
 function main()
     #println("===== run_jobs.jl started @ ", Dates.format(now(TZ_LOCAL), "yyyy-mm-dd HH:MM:SS zzz"), " =====")
 
@@ -103,6 +126,10 @@ function main()
         @warn "Project.toml/Manifest.toml not found in current directory. You're not at project root?"
     end
 
+    # 0) Refresh fact tables via Python (optional; comment out if not needed)
+    #println("Step 0/5 — Refreshing fact tables via Python")
+    run_py_main!()
+    
     # 1) Clean working folders (commented during testing)
     #println("Step 1/5 — Cleaning working folders: ", join(WORK_DIRS, ", "))
     ensure_clean_dirs!(WORK_DIRS)

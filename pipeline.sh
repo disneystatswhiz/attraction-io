@@ -10,6 +10,9 @@ KEEP_LOGS=14                         # how many pipeline_*.log files to keep
 SHUTDOWN_ON_EXIT=1                   # set to 0 to keep instance running after job
 MIN_FREE_GB=20                       # minimum free space required on /
 PATH="/usr/local/bin:/usr/bin:/bin"  # cron-safe PATH
+
+# Which Julia job to run
+JOB_SCRIPT="$PROJECT_DIR/scheduler/run_jobs.jl"     # adjust if yours lives elsewhere (e.g., src/run_jobs.jl)
 # ==========================
 
 cd "$PROJECT_DIR"
@@ -84,12 +87,10 @@ julia --project="$JULIA_PROJECT" -e '
         Pkg.instantiate(; verbose=true)
         Pkg.precompile()
     catch e
-        # @warn "Pkg bootstrap failed, clearing compiled cache and retrying" exception=(e, catch_backtrace())
         cache = joinpath(homedir(), ".julia", "compiled", "v$(VERSION.major).$(VERSION.minor)")
         try
             run(`rm -rf $cache`)
-        catch err
-            # @warn "Failed to remove compiled cache" exception=(err, catch_backtrace())
+        catch
         end
         Pkg.instantiate(; verbose=true)
         Pkg.precompile()
@@ -98,6 +99,42 @@ julia --project="$JULIA_PROJECT" -e '
   echo "Julia bootstrap failed; aborting."
   exit 1
 }
+
+# ---------- Ensure Python + venv (for fact-table Step 0) ----------
+ensure_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo "Python3 present: $(python3 --version)"
+    return
+  fi
+  echo "Python3 not found; installing…"
+  if [ -f /etc/debian_version ]; then
+    sudo apt-get update -y
+    sudo apt-get install -y python3 python3-venv python3-pip
+  elif [ -f /etc/redhat-release ]; then
+    sudo yum install -y python3 || sudo dnf install -y python3
+    python3 -m ensurepip --upgrade || sudo yum install -y python3-pip || true
+  else
+    echo "Unsupported distro — install Python3 manually."; exit 1
+  fi
+}
+
+setup_venv() {
+  VENV_DIR="$PROJECT_DIR/venv"
+  if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating venv at $VENV_DIR"
+    python3 -m venv "$VENV_DIR"
+  fi
+  # shellcheck source=/dev/null
+  source "$VENV_DIR/bin/activate"
+  python -m pip install --upgrade pip
+  # Minimal deps for your fact-table scripts; add more here if needed.
+  python -m pip install boto3 pandas pyarrow s3fs
+  export PYTHON_BIN="$VENV_DIR/bin/python"
+}
+
+echo "Bootstrapping Python environment…"
+ensure_python
+setup_venv
 
 # ---------- Log rotation (deterministic) ----------
 echo "Rotating logs (keeping last $KEEP_LOGS)…"
@@ -122,21 +159,25 @@ trap finish EXIT
 rm -rf input output temp work
 mkdir -p input output temp work
 
-# ---------- Launch the scheduler with live output + heartbeat ----------
+# ---------- Launch the job with live output + heartbeat ----------
 echo "Starting Julia launcher at $(date -Is)…"
+if [[ ! -f "$JOB_SCRIPT" ]]; then
+  echo "Job script not found: $JOB_SCRIPT"
+  exit 1
+fi
 
 # Force line-buffered output so logs flush immediately to console
 if command -v script >/dev/null 2>&1; then
-  script -q -f -c "julia --project=\"$JULIA_PROJECT\" scheduler/run_jobs.jl" /dev/null &
+  script -q -f -c "julia --project=\"$JULIA_PROJECT\" \"$JOB_SCRIPT\"" /dev/null &
 else
-  stdbuf -oL -eL julia --project="$JULIA_PROJECT" scheduler/run_jobs.jl &
+  stdbuf -oL -eL julia --project="$JULIA_PROJECT" "$JOB_SCRIPT" &
 fi
 JPID=$!
 
 # --- Heartbeat: print a timestamp every minute so monitor sessions stay live ---
 (
   while kill -0 "$JPID" 2>/dev/null; do
-    echo "[hb] $(date -Is) — pipeline still running..."
+    echo "[hb] running..."
     sleep 60
   done
 ) &
