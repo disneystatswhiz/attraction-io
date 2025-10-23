@@ -179,7 +179,7 @@ def render_report(
     cutoff_48 = datetime.now(timezone.utc) - timedelta(hours=very_stale_hours)
 
     if recent:
-        lines = [f"*Recent source files (newest → oldest, window ≤ {len(set([r.last_modified.date() for r in recent]))} day(s))*"]
+        lines = [f"*Recent source files (newest - oldest, window ≤ {len(set([r.last_modified.date() for r in recent]))} day(s))*"]
         for o in recent:
             flag = ""
             if is_current_non_test(o.key):

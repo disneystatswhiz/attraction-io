@@ -12,6 +12,7 @@ logs/
 temp/
 work/
 output/
+venv/
 *.log
 *.tmp
 *.bak
