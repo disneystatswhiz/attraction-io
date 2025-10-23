@@ -6,6 +6,7 @@ set -euo pipefail
 
 # ========= Config =========
 PROJECT_DIR="/home/ubuntu/attraction-io"
+GIT_BRANCH="fact_table_sync"         # branch to pull from
 KEEP_LOGS=14                         # how many pipeline_*.log files to keep
 SHUTDOWN_ON_EXIT=1                   # set to 0 to keep instance running after job
 MIN_FREE_GB=20                       # minimum free space required on /
@@ -18,9 +19,14 @@ JOB_SCRIPT="$PROJECT_DIR/scheduler/run_jobs.jl"     # adjust if yours lives else
 cd "$PROJECT_DIR"
 mkdir -p input output temp work logs
 
-# Always start from a clean tree and pull latest code (enables remote “brake”)
-git reset --hard HEAD
-git pull --ff-only
+# Always start from a clean tree and pull latest code (on the pinned branch)
+git fetch --all --prune
+# Create/update a local branch that tracks the remote branch
+git checkout -B "$GIT_BRANCH" "origin/$GIT_BRANCH"
+git reset --hard "origin/$GIT_BRANCH"
+git pull --ff-only origin "$GIT_BRANCH"
+
+echo "git branch: $(git rev-parse --abbrev-ref HEAD)"
 
 # ---------- Git info ----------
 GIT_MSG="$(git log -1 --pretty=%s 2>/dev/null || echo 'n/a')"
