@@ -2,7 +2,7 @@
 # run_jobs.jl — Launch attraction modelling for entities
 # needing (re)runs based on latest_obs_report.csv
 # -------------------------------------------------------------
-using Dates, CSV, DataFrames, TimeZones
+using Dates, CSV, DataFrames, TimeZones, Parquet
 
 # --- Anchor all paths at the repo root (one level up from scheduler) ---
 const ROOT         = abspath(joinpath(@__DIR__, ".."))
