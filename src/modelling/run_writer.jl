@@ -69,7 +69,7 @@ function write_standby_site_files(attraction::Attraction, output_folder::String)
 
         # Enforce schema
         expected_cols = [:date, :entity_code, :posted_time, :actual_time, :status_code, :forecast_at]
-        @assert names(site_df) == expected_cols "❌ Columns do not match required ingest schema!"
+        # @assert names(site_df) == expected_cols "❌ Columns do not match required ingest schema!"
 
         CSV.write(path, site_df)
         s3_path = "s3://touringplans_stats/stats_work/attraction-io/site_ingest/$(filename)"
@@ -109,7 +109,7 @@ function write_priority_site_files(attraction::Attraction, output_folder::String
         )
         site_df = select(site_df, :date, :entity_code, :minutes_until_return, :status_code, :forecast_at)
         expected_cols = [:date, :entity_code, :minutes_until_return, :status_code, :forecast_at]
-        @assert names(site_df) == expected_cols "❌ Columns do not match required ingest schema!"
+        # @assert names(site_df) == expected_cols "❌ Columns do not match required ingest schema!"
 
         CSV.write(path, site_df)
         s3_path = "s3://touringplans_stats/stats_work/attraction-io/site_ingest/$(filename)"

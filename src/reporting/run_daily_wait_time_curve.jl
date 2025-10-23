@@ -3,7 +3,7 @@
 # PNGs for wait-time curves, EC2-safe, strictly keyed by id_park_day_id.
 # - PRIORITY: 2 series (Observed vs Predicted posted)
 # - STANDBY : 4 series (Posted Observed/Predicted + Actual Observed/Predicted)
-#             with labels for Actual Observed points: "25 @ 9:32 a.m."
+#             with labels for Actual Observed points: "25 # @ 9:32 a.m."
 #
 # After saving, each PNG is uploaded with upload_file_to_s3().
 # --------------------------------------------------------------------------------- #
@@ -266,7 +266,7 @@ function make_standby_combined_plot(df_pobs::DataFrame, df_pfc::DataFrame,
 
             dy = 0.02 * y_max
             positions   = Point2f.(xa_obs[keep], ya_obs[keep] .+ dy)
-            label_texts = string.(round.(Int, ya_obs[keep]), " @ ", fmt_ampm.(xa_obs[keep]))
+            label_texts = string.(round.(Int, ya_obs[keep]), " # @ ", fmt_ampm.(xa_obs[keep]))
 
             textlabel!(ax, positions;
                 text = label_texts,

@@ -67,7 +67,7 @@ function main(attraction::Attraction)
 
     # Load existing
     df_existing = CSV.read(input_file, DataFrame)
-    df_existing.observed_at = parse_zoneddatetimes_simple(df_existing.observed_at)
+    df_existing.observed_at = parse_zoneddatetimes_smart(df_existing.observed_at; timezone = attraction.timezone)
 
     # Generate future rows (all with ZonedDateTime observed_at)
     forecast_times = generate_future_forecast_times(attraction)

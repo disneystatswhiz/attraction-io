@@ -93,7 +93,7 @@ function main()
     println("Starting S3 watcher: $S3PATH → $LOCALDIR  (poll=$(POLL_SECS)s)")    
     last_file, last_time = latest_csv_mod(LOCALDIR, TZ)
     if !isnothing(last_file)
-        println("Initial latest local: $(basename(last_file)) @ $last_time")
+        println("Initial latest local: $(basename(last_file)) # @ $last_time")
     end
 
     stagnant = 0
