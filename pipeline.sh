@@ -110,17 +110,28 @@ julia --project="$JULIA_PROJECT" -e '
 ensure_python() {
   if command -v python3 >/dev/null 2>&1; then
     echo "Python3 present: $(python3 --version)"
-    return
-  fi
-  echo "Python3 not found; installing…"
-  if [ -f /etc/debian_version ]; then
-    sudo apt-get update -y
-    sudo apt-get install -y python3 python3-venv python3-pip
-  elif [ -f /etc/redhat-release ]; then
-    sudo yum install -y python3 || sudo dnf install -y python3
-    python3 -m ensurepip --upgrade || sudo yum install -y python3-pip || true
   else
-    echo "Unsupported distro — install Python3 manually."; exit 1
+    echo "Python3 not found; installing…"
+    if [ -f /etc/debian_version ]; then
+      sudo apt-get update -y
+      sudo apt-get install -y python3 python3-venv python3-pip
+    elif [ -f /etc/redhat-release ]; then
+      sudo yum install -y python3 || sudo dnf install -y python3
+      python3 -m ensurepip --upgrade || sudo yum install -y python3-pip || true
+    else
+      echo "Unsupported distro — install Python3 manually."; exit 1
+    fi
+  fi
+
+  # Make sure the venv module is actually available (Ubuntu often needs python3-venv)
+  if ! python3 -m venv -h >/dev/null 2>&1; then
+    echo "Installing python3-venv (venv module missing)…"
+    if [ -f /etc/debian_version ]; then
+      sudo apt-get update -y
+      sudo apt-get install -y python3-venv
+    else
+      echo "ERROR: venv module not available on this distro."; exit 1
+    fi
   fi
 }
 
@@ -130,11 +141,28 @@ setup_venv() {
     echo "Creating venv at $VENV_DIR"
     python3 -m venv "$VENV_DIR"
   fi
+
+  # Verify venv really exists before sourcing
+  if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    echo "ERROR: venv creation failed (no activate script at $VENV_DIR/bin/activate)."
+    echo "Attempting to recreate…"
+    rm -rf "$VENV_DIR"
+    python3 -m venv "$VENV_DIR"
+  fi
+
+  if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    echo "ERROR: still no activate script; aborting."
+    exit 1
+  fi
+
   # shellcheck source=/dev/null
   source "$VENV_DIR/bin/activate"
-  python -m pip install --upgrade pip
-  # Minimal deps for your fact-table scripts; add more here if needed.
-  python -m pip install boto3 pandas pyarrow s3fs
+  echo "Python in venv: $(python --version) @ $(which python)"
+
+  # Install deps without using cache (saves disk)
+  python -m pip install --upgrade --no-cache-dir pip
+  python -m pip install --no-cache-dir boto3 pandas pyarrow s3fs
+
   export PYTHON_BIN="$VENV_DIR/bin/python"
 }
 
