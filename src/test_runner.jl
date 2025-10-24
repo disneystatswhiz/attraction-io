@@ -4,4 +4,4 @@
 
 include("../src/main_runner.jl")
 include("../src/main_setup.jl")  # ensures Main.DATA_FACT
-run_entity("AK86"; data_fact=Main.DATA_FACT)
+run_entity("CA173"; data_fact=Main.DATA_FACT)
