@@ -8,11 +8,11 @@ def run_scripts_in_order():
     start_time = time.perf_counter()
 
     # Run report.py
-    subprocess.run(["python", "report.py"], check=True)
+    subprocess.run(["python", "src/fact_table/report.py"], check=True)
     # Run update.py
-    subprocess.run(["python", "update.py"], check=True)
+    subprocess.run(["python", "src/fact_table/update.py"], check=True)
     # Run latest.py
-    subprocess.run(["python", "latest.py"], check=True)
+    subprocess.run(["python", "src/fact_table/latest.py"], check=True)
 
     # Delete the input and work directories to ensure clean slate
     if os.path.exists("input"):
