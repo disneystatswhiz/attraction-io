@@ -24,6 +24,7 @@ function run_entities_pool(codes::Vector{String}, data_fact; nworkers::Int=6)
                     run_entity(code; data_fact=data_fact)
                 catch err
                     @warn "run_entity failed" code exception=(err, catch_backtrace())
+                    cleanup_folders(code)
                 end
             end
         end
