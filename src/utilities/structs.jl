@@ -3,7 +3,7 @@ module Structs
 using Dates
 using TimeZones
 
-export Attraction, Event, EventDay, WaitObs, get_wait_time_types
+export Attraction, ParkEvent, EventDay, WaitObs, get_wait_time_types
 
 # ── Attraction ───────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ Base.getproperty(a::Attraction, ::Val{:wait_time_types}) = get_wait_time_types(a
 
 # ── Event ────────────────────────────────────────────────────────────────────
 
-struct Event
+struct ParkEvent
     code::String
     name::String
     property::String
@@ -135,13 +135,13 @@ end
 struct EventDay
     date::Date
     property::Union{String, Missing}
-    event::Event
+    event::ParkEvent
     start_time::Union{Time, Missing}
     end_time::Union{Time, Missing}
 end
 
 # Accept AbstractString/InlineString/Missing/Time for start/end
-EventDay(date::Date, property, event::Event, start_time, end_time) =
+EventDay(date::Date, property, event::ParkEvent, start_time, end_time) =
     EventDay(date, property, event, parse_time(start_time), parse_time(end_time))
 
 # ── Wait Observation ─────────────────────────────────────────────────────────

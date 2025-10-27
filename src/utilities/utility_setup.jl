@@ -14,7 +14,7 @@ if !isdefined(Main, :Structs)
 end
 
 # Make selected structs globally available
-using .Structs: Attraction, Event, EventDay
+using .Structs: Attraction, ParkEvent, EventDay
 
 # Include other utilities
 include(joinpath(ROOT, "src", "utilities", "utils.jl"))

@@ -22,7 +22,7 @@ event_days_df = CSV.read(event_days_path, DataFrame; missingstring="")
 events_df     = CSV.read(events_path, DataFrame;   missingstring="")
 
 # -- Build Event lookup: Dict{String, Event}
-event_lookup = Dict{String, Event}()
+event_lookup = Dict{String, ParkEvent}()
 
 for row in eachrow(events_df)
     abbrev        = row.event_abbreviation
@@ -31,7 +31,7 @@ for row in eachrow(events_df)
     is_hard_ticket = row.event_hard_ticket == 1
     tz            = get_timezone_for_property(property)
 
-    event_lookup[abbrev] = Event(abbrev, name, property, is_hard_ticket, tz)
+    event_lookup[abbrev] = ParkEvent(abbrev, name, property, is_hard_ticket, tz)
 end
 
 # -- Pre-parse opening/closing into ZonedDateTime (handles ISO with offsets)
