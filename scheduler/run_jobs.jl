@@ -1,163 +1,164 @@
-# -------------------------------------------------------------
-# run_jobs.jl — Launch attraction modelling for entities
-# needing (re)runs based on latest_obs_report.csv
-# -------------------------------------------------------------
-import Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-Pkg.instantiate()
+# ===================================================================================== #
+# ------------------------------ Attraction IO Runner --------------------------------- #
+# ===================================================================================== #
 
-using Dates, CSV, DataFrames, TimeZones, Parquet
+include("../src/main_setup.jl")  # ensures Main.DATA_FACT
+include("../src/main_runner.jl")
 
-# --- Anchor all paths at the repo root (one level up from scheduler) ---
-const ROOT         = abspath(joinpath(@__DIR__, ".."))
-const TZ_LOCAL     = TimeZone("America/Toronto")
+import Base.Threads: @spawn, @sync
 
-# Files/dirs relative to ROOT
-const LATEST_OBS_REPORT = joinpath(ROOT, "input", "wait_times", "latest_obs_report.csv")
-const WORK_DIRS         = [joinpath(ROOT, d) for d in ("input","output","temp","work")]
+# -------------------------------------------------------------------
+# Function to run entities with a fixed-size thread pool
+# -------------------------------------------------------------------
+function run_entities_pool(codes::Vector{String}, data_fact; nworkers::Int=6)
+    jobs = Channel{String}(length(codes))
+    for c in codes
+        put!(jobs, c)
+    end
+    close(jobs)
 
-# Script entrypoints (absolute)
-const MAIN_SETUP  = joinpath(ROOT, "src", "main_setup.jl")
-const MAIN_RUNNER = joinpath(ROOT, "src", "main_runner.jl")
-
-# How many days back counts as "needs modelling"
-const FRESHNESS_WINDOW_DAYS = 2
-
-# Include the main_runner only once and call run_entity repeatedly
-include(joinpath(ROOT, "src", "main_runner.jl"))
-
-# -------------------------------------------------------------
-function must_exist(path::AbstractString)
-    isfile(path) || error("Required file not found: $path")
-end
-
-function ensure_clean_dirs!(dirs::Vector{String})
-    for d in dirs
-        if isdir(d)
-            try
-                rm(d; recursive = true, force = true)
-            catch e
-                @warn "Failed to remove directory $d" error = e
+    @sync for _ in 1:nworkers
+        @spawn begin
+            for code in jobs
+                try
+                    run_entity(code; data_fact=data_fact)
+                catch err
+                    @warn "run_entity failed" code exception=(err, catch_backtrace())
+                end
             end
         end
-        try
-            mkpath(d)
-        catch e
-            @warn "Failed to recreate directory $d" error = e
-        end
     end
 end
 
-# Only used for MAIN_SETUP because we want a fresh Julia process for that one step
-function run_script(script::AbstractString, args::Vector{String}=String[])
-    cmd = `$(Base.julia_cmd()) --project=. $script $(args...)`
-    #println("→ Running: ", cmd)
-    t0 = time()
-    ok = Base.success(cmd)
-    dt = round(time() - t0; digits = 1)
-    #println(ok ? "✓ Completed $script in $(dt)s" : "✗ FAILED $script after $(dt)s")
-    return ok
-end
+# -------------------------------------------------------------------
+# Full list of entity codes grouped by property (with comments)
+# -------------------------------------------------------------------
+CODES = [
+    # ==== Disney California Adventure (CA) ====
+    "CA03",   # Monsters, Inc.
+    "CA09",   # Soarin'
+    "CA109",  # Radiator Racers
+    "CA110",  # Mater's Jamboree
+    "CA148",  # Luigi's Roadsters
+    "CA155",  # Guardians BREAKOUT
+    "CA167",  # Incredicoaster
+    "CA180",  # Emotional Whirlwind
+    "CA188",  # WEB SLINGERS
+    "CA22",   # Jumpin' Jellyfish
+    "CA28",   # Pixar Pal-A-Round - Swing
+    "CA30",   # Toy Story Mania!
+    "CA39",   # Pixar Pal-A-Round - No Swing
+    "CA56",   # Silly Swings - Single
+    "CA67",   # Goofy's Sky School
+    "CA68",   # Little Mermaid
 
-function load_latest_obs_report(path::AbstractString)
-    df = CSV.read(path, DataFrame)
+    # ==== Disneyland (DL) ====
+    "DL01",   # Alice in Wonderland
+    "DL02",   # Astro Orbitor
+    "DL03",   # Autopia
+    "DL07",   # Buzz Lightyear
+    "DL16",   # Dumbo
+    "DL179",  # Millennium Falcon
+    "DL18",   # Finding Nemo Subs
+    "DL180",  # Rise of Resistance
+    "DL24",   # Indiana Jones Adv
+    "DL27",   # it's a small world
+    "DL28",   # Jungle Cruise
+    "DL33",   # Matterhorn
+    "DL34",   # Mickey's House
+    "DL37",   # Mr Toad's Wild Ride
+    "DL38",   # Peter Pan's Flight
+    "DL39",   # Pinocchio's Journey
+    "DL40",   # Pirates of Caribbean
+    "DL42",   # Roger Rabbit's Spin
+    "DL45",   # Snow White
+    "DL46",   # Space Mountain
+    "DL50",   # Star Tours
+    "DL53",   # Haunted Mansion
 
-    # Ensure names are strings (your convention)
-    rename!(df, Dict(n => String(n) for n in names(df)))
+    # ==== Islands of Adventure (IA) ====
+    "IA01",   # Spider-Man
+    "IA06",   # Seuss Trolley
+    "IA07",   # Incredible Hulk
+    "IA08",   # JP River Adventure
+    "IA09",   # One Fish
+    "IA13",   # Storm Force
+    "IA14",   # Cat in the Hat
+    "IA15",   # Hippogriff
+    "IA16",   # Forbidden Journey
+    "IA65",   # Hagrid's Adventure
+    "IA69",   # VelociCoaster
 
-    # Validate required columns (as strings)
-    for req in ["entity_code", "latest_observation_date"]
-        req in names(df) || error("latest_obs_report is missing required column: $req")
-    end
+    # ==== Universal Studios Florida (UF) ====
+    "UF02",   # E.T. Adventure
+    "UF06",   # MEN IN BLACK
+    "UF07",   # Mummy
+    "UF12",   # Simpsons Ride
+    "UF30",   # Despicable Me
+    "UF48",   # Transformers
+    "UF62",   # Twirl 'n' Hurl 
+    "UF63",   # Gringotts
 
-    # Coerce date column to Date (supports String/DateTime/ZonedDateTime)
-    col = df[!, "latest_observation_date"]
-    if eltype(col) <: Date
-        # already fine
-    elseif eltype(col) <: DateTime
-        df[!, "latest_observation_date"] = Date.(col)
-    elseif eltype(col) <: TimeZones.ZonedDateTime
-        df[!, "latest_observation_date"] = Date.(col)
-    else
-        df[!, "latest_observation_date"] = Date.(string.(col))
-    end
+    # ==== Epic Universe (EU) ====
+    "EU01",   # Stardust Racers
+    "EU04",   # Mario Kart
+    "EU05",   # Yoshi's Adventure
+    "EU06",   # Mine-Cart Madness
+    "EU07",   # Battle at the Ministry
+    "EU09",   # Fyre Drill
+    "EU10",   # Dragon Racer's Rally
+    "EU11",   # Hiccup's Wing Gliders
 
-    # Ensure entity_code is String
-    df[!, "entity_code"] = String.(df[!, "entity_code"])
-    return df
-end
+    # ==== Animal Kingdom (AK) ====
+    "AK07",   # Kilimanjaro Safaris
+    "AK11",   # Expedition Everest
+    "AK18",   # DINOSAUR
+    "AK85",   # Na'vi River
+    "AK86",   # Flight of Passage
 
-function select_entities_needing_runs(df::DataFrame; window_days::Int=2)
-    # now(TZ_LOCAL) already returns a ZonedDateTime — convert directly to Date
-    today_local = Date(now(TZ_LOCAL))
-    cutoff = today_local - Day(window_days)
+    # ==== EPCOT (EP) ====
+    "EP02",   # Spaceship Earth
+    "EP04",   # Seas with Nemo
+    "EP07",   # Living w/ Land
+    "EP09",   # Soarin'
+    "EP13",   # Jrny Imagination
+    "EP14",   # Test Track
+    "EP155",  # Frozen Ever After
+    "EP16",   # Msn: SPACE Orange
+    "EP186",  # Remy's Adventure
+    "EP20",   # Gran Fiesta Tour
 
-    dates = df[!, "latest_observation_date"]
-    mask  = (dates .>= cutoff) .& (dates .<= today_local)
+    # ==== Hollywood Studios (HS) ====
+    "HS103",  # Slinky Dog
+    "HS104",  # Alien Saucers
+    "HS111",  # Runaway Railway
+    "HS112",  # Millennium Falcon
+    "HS113",  # Rise of Resistance
+    "HS12",   # Rock Coaster
+    "HS15",   # Star Tours
+    "HS20",   # Toy Story Mania!
+    "HS22",   # Tower of Terror
 
-    # De-dup; ensure lowercase for runner
-    return unique(lowercase.(df[!, "entity_code"][mask]))
-end
+    # ==== Magic Kingdom (MK) ====
+    "MK01",   # Space Mountain
+    "MK05",   # Peter Pan's Flight
+    "MK06",   # Winnie the Pooh
+    "MK13",   # Jungle Cruise
+    "MK141",  # 7 Dwarfs Train
+    "MK142",  # Under the Sea
+    "MK15",   # Magic Carpets
+    "MK16",   # Pirates of Caribbean
+    "MK23",   # Haunted Mansion
+    "MK27",   # Dumbo
+    "MK28",   # it's a small world
+    "MK29",   # Mad Tea Party
+    "MK34",   # Barnstormer
+    "MK39",   # Astro Orbiter
+    "MK43"    # Tom'land Speedway
 
-function main()
-    #println("===== run_jobs.jl started @ ", Dates.format(now(TZ_LOCAL), "yyyy-mm-dd HH:MM:SS zzz"), " =====")
+]
 
-    # Safety: ensure we're in a project root
-    if !isfile("Project.toml") && !isfile("Manifest.toml")
-        @warn "Project.toml/Manifest.toml not found in current directory. You're not at project root?"
-    end
-   
-    # 1) Clean working folders (commented during testing)
-    #println("Step 1/5 — Cleaning working folders: ", join(WORK_DIRS, ", "))
-    ensure_clean_dirs!(WORK_DIRS)
-
-    # 2) Run main_setup.jl to (re)sync data, folders, and specs
-    #println("Step 2/5 — Running main_setup.jl")
-    must_exist(MAIN_SETUP)
-    Base.include(Main, MAIN_SETUP)   # <-- instead of run_script(MAIN_SETUP)
-
-    # 3) Load latest_obs_report.csv and decide which entities to model
-    #println("Step 3/5 — Loading latest_obs_report and selecting entities")
-    must_exist(LATEST_OBS_REPORT)
-    report   = load_latest_obs_report(LATEST_OBS_REPORT)
-    entities = select_entities_needing_runs(report; window_days=FRESHNESS_WINDOW_DAYS)
-
-    if isempty(entities)
-        #println("No entities need modelling (latest observations older than $(FRESHNESS_WINDOW_DAYS) days). Done.")
-        return
-    end
-
-    #println("Entities to model (sequential): ", join(entities, ", "))
-
-    failures = String[]
-    total = length(entities)
-
-    for (i, code) in enumerate(entities)
-        #println("Step 4/5 — Calling run_entity ($i/$total) for entity: $code")
-        t0 = time()
-        ok = try
-            run_entity(code; data_fact = Main.DATA_FACT)
-            true
-        catch e
-            @error "run_entity failed" entity=code error=e
-            false
-        end
-
-        dt = round(time() - t0; digits=1)
-        #println(ok ? "✓ Completed $code in $(dt)s" : "✗ FAILED $code after $(dt)s")
-        ok || push!(failures, code)
-        sleep(0.2)
-    end
-
-    # 5) Summary
-    #println("Step 5/5 — Summary")
-    if isempty(failures)
-        #println("All runs completed successfully. 🎉")
-    else
-        #println("Some entities failed: ", join(failures, ", "))
-        exit(1)  # non-zero to signal partial failure if used by a scheduler
-    end
-end
-
-# -------------------------------------------------------------
-main()
+# -------------------------------------------------------------------
+# Run entities (limit to 6 concurrent threads)
+# -------------------------------------------------------------------
+run_entities_pool(CODES, Main.DATA_FACT; nworkers=3)
