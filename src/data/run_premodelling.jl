@@ -51,7 +51,8 @@ function main()
             if nrow(df_existing) > 0
             df_existing.meta_observed_at = parse_zoneddatetimes_simple(df_existing.meta_observed_at)
             df_combined = vcat(df_existing, df_new; cols = :union)
-            df_final = unique(df_combined)
+            unique_cols = [:id_park_day_id, :id_entity_code, :meta_property_code, :meta_park_code, :meta_observed_at, :meta_wait_time_type, :target]
+            df_final = unique(df_combined, unique_cols)
             else
             df_final = df_new
             end
@@ -86,7 +87,7 @@ function main()
         if !isempty(target_col) && eltype(df_final[!, target_col[1]]) <: Number
             df_final = filter(row -> row.target >= -100 && row.target <= 1000, df_final)
         end
-
+        
         # Save to output and upload
         CSV.write(output_path, df_final)
                 

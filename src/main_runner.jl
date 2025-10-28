@@ -33,7 +33,7 @@ function run_entity(entity_code::AbstractString; data_fact = nothing)
     include(joinpath(ROOT, "src", "modelling", "run_encodefeatures.jl"))
     include(joinpath(ROOT, "src", "modelling", "run_trainer.jl"))
     include(joinpath(ROOT, "src", "modelling", "run_predictions.jl"))
-    # include(joinpath(ROOT, "src", "modelling", "run_writer.jl"))
+    include(joinpath(ROOT, "src", "modelling", "run_writer.jl"))
 
     # =================== Crowd Calendar Assignment =========================
     include(joinpath(ROOT, "src", "calendar", "run_dailyavgs.jl"))

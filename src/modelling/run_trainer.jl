@@ -3,6 +3,13 @@
 # -------------------------------------------------------------------- #
 
 using Dates, CSV, DataFrames, XGBoost
+using Base.Threads
+using LinearAlgebra
+
+# Let libraries use all Julia threads
+ENV["OMP_NUM_THREADS"] = string(Threads.nthreads())
+BLAS.set_num_threads(Threads.nthreads())
+# @info "Threading enabled" nthreads=Threads.nthreads()
 
 # ---------------------------------------------------------
 # Train and optionally score using XGBoost
@@ -18,7 +25,6 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
     df_score = filter(row -> ismissing(row.target) && row.meta_observed_at > ZonedDateTime(now(), tz"UTC"), df)
 
     if isempty(df_train)
-        # @error("❌ No training data for $entity_code ($wait_type)")
         return nothing
     end
 
@@ -42,35 +48,28 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
         min_child_weight = 10,
         objective = "reg:absoluteerror",
         tree_method = use_gpu ? "gpu_hist" : "hist",
+        nthread = Threads.nthreads(),      # ← enable multi-threaded training
         verbosity = 0,
         watchlist = ()
     )
 
-    # # @info("📊 Trained model on $(nrow(df_train)) rows | GPU: $use_gpu | $(length(predictors)) predictors")
-
     # Save feature importance
-    importance_df = DataFrame(
-        feature = keys(XGBoost.importance(booster)),
-        importance = values(XGBoost.importance(booster))
-    )
+    importance = XGBoost.importance(booster)
+    importance_df = DataFrame(feature = collect(keys(importance)),
+                              importance = collect(values(importance)))
     imp_path = joinpath(temp_folder, "feature_importance_$(wait_type_lower).csv")
     CSV.write(imp_path, importance_df)
-    # # @info("📈 Feature importance saved to $imp_path")
 
     # Score future rows
     if !isempty(df_score)
         X_score = Matrix{Float32}(df_score[:, predictors])
         df_score.predicted_wait_time = predict(booster, DMatrix(X_score))
         select!(df_score, Not(:target))  # Drop target
-        df_score.meta_wait_time_type = fill(wait_type, nrow(df_score))  # ✅ ADD THIS
+        df_score.meta_wait_time_type = fill(wait_type, nrow(df_score))
         scored_path = joinpath(temp_folder, "scored_$(wait_type_lower).csv")
         CSV.write(scored_path, df_score)
-        # # @info("🔮 Predictions saved to $scored_path")
-    else
-        # @warn("⚠️ No scoring rows for $entity_code ($wait_type)")
     end
 
-    # # @info("✅ Training complete for $entity_code ($wait_type)")
     return booster
 end
 
@@ -88,33 +87,26 @@ function main(attraction::Attraction)
         model_path = joinpath(temp_folder, "model_$(wt_lower).bst")
 
         if !isfile(input_path)
-            # @warn("⚠️ Skipping $wait_type — input file not found: $input_path")
             continue
         end
 
         df = CSV.read(input_path, DataFrame)
-
         if "meta_wait_time_type" ∉ names(df)
-            # @warn("⚠️ Skipping $wait_type — no 'meta_wait_time_type' column in input file.")
             continue
         end
 
         df.meta_observed_at = parse_zoneddatetimes_simple(df.meta_observed_at)
         df = filter(row -> lowercase(row.meta_wait_time_type) == lowercase(wait_type), df)
-
         if isempty(df)
-            # @warn("⚠️ Skipping $wait_type — no matching rows for 'meta_wait_time_type == $wait_type'")
             continue
         end
 
         booster = train_model(df, attraction, wait_type)
         if booster !== nothing
             XGBoost.save(booster, model_path)
-            # @info("💾 Model saved to $model_path")
         end
     end
 end
-
 
 # ✅ Call main with ATTRACTION defined elsewhere
 main(ATTRACTION)
