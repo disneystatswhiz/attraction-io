@@ -31,7 +31,7 @@ function main()
     end
 
     df = CSV.read(joinpath(LOC_DIM, "dimdate.csv"), DataFrame)
-    sort!(df, :park_day_id)
+    sort!(df, :park_date)
 
     df[!, :holidaycode] .= "NONE"
     df[!, :holidayname] .= "None"
@@ -41,12 +41,12 @@ function main()
     df[(df.month .== 1) .& (df.day .== 1), :holidaycode] .= "NYD"
     df[(df.month .== 1) .& (df.day_of_week_name .== "Monday") .& (15 .<= df.day .<= 21), :holidaycode] .= "MLK"
     df[(df.month .== 2) .& (df.day_of_week_name .== "Monday") .& (15 .<= df.day .<= 21), :holidaycode] .= "PRS"
-    df[df.park_day_id .== (easter_dates .- Day(47)), :holidaycode] .= "MGR"
-    df[df.park_day_id .== (easter_dates .- Day(46)), :holidaycode] .= "ASH"
-    df[df.park_day_id .== (easter_dates .- Day(2)), :holidaycode] .= "GFR"
-    df[df.park_day_id .== (easter_dates .- Day(1)), :holidaycode] .= "EST"
-    df[df.park_day_id .== easter_dates, :holidaycode] .= "ESS"
-    df[df.park_day_id .== (easter_dates .+ Day(1)), :holidaycode] .= "ESM"
+    df[df.park_date .== (easter_dates .- Day(47)), :holidaycode] .= "MGR"
+    df[df.park_date .== (easter_dates .- Day(46)), :holidaycode] .= "ASH"
+    df[df.park_date .== (easter_dates .- Day(2)), :holidaycode] .= "GFR"
+    df[df.park_date .== (easter_dates .- Day(1)), :holidaycode] .= "EST"
+    df[df.park_date .== easter_dates, :holidaycode] .= "ESS"
+    df[df.park_date .== (easter_dates .+ Day(1)), :holidaycode] .= "ESM"
     df[(df.month .== 5) .& (df.day_of_week_name .== "Monday") .& (25 .<= df.day .<= 31), :holidaycode] .= "MEM"
     df[(df.month .== 7) .& (df.day .== 4), :holidaycode] .= "IND"
     df[(df.month .== 9) .& (df.day_of_week_name .== "Monday") .& (1 .<= df.day .<= 7), :holidaycode] .= "LAB"
@@ -81,7 +81,7 @@ function main()
         df[df.holidaycode .== code, :holidayname] .= name
     end
 
-    out = select(df, [:park_day_id, :holidaycode, :holidayname])
+    out = select(df, [:park_date, :holidaycode, :holidayname])
     CSV.write(holidays_path, out)
 
     # --- Upload to S3 ---

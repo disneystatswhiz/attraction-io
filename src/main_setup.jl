@@ -12,7 +12,7 @@ SETUP_INPUT = joinpath(ROOT, "input", "dimEntity.csv")  # or another stable outp
 
 if isfile(SETUP_INPUT)
     @info "🔧 Checking setup status..."
-    if Date(Dates.unix2datetime(stat(SETUP_INPUT).mtime)) == today()
+    if Date(Dates.unix2datetime(stat(SETUP_INPUT).mtime)) == TODAY_DATE
         println("✅ Setup already completed today — skipping.")
         exit(0)
     end

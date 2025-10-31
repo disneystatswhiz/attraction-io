@@ -8,6 +8,8 @@ const LOC_DIM    = joinpath(LOC_WORK, "_dim")
 const LOC_DONOR  = joinpath(LOC_WORK, "_donor")
 const LOC_TEMP   = joinpath(ROOT, "temp")
 
+const TODAY_DATE = Dates.today()
+
 # Include Structs module once
 if !isdefined(Main, :Structs)
     include(joinpath(ROOT, "src", "utilities", "structs.jl"))

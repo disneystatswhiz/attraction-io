@@ -9,7 +9,55 @@ include("../src/main_runner.jl")
 # Full list of entity codes grouped by property (with comments)
 # -------------------------------------------------------------------
 CODES = [
-    # ==== Disney California Adventure (CA) ====
+
+    # ==== Animal Kingdom (AK) ====
+    "AK07",   # Kilimanjaro Safaris
+    "AK11",   # Expedition Everest
+    "AK18",   # DINOSAUR
+    "AK85",   # Na'vi River
+    "AK86",   # Flight of Passage
+
+    # ==== EPCOT (EP) ====
+    "EP02",   # Spaceship Earth
+    "EP04",   # Seas with Nemo
+    "EP07",   # Living w/ Land
+    "EP09",   # Soarin'
+    "EP13",   # Jrny Imagination
+    "EP14",   # Test Track
+    "EP155",  # Frozen Ever After
+    "EP16",   # Msn: SPACE Orange
+    "EP186",  # Remy's Adventure
+    "EP20",   # Gran Fiesta Tour
+
+    # ==== Hollywood Studios (HS) ====
+    "HS103",  # Slinky Dog
+    "HS104",  # Alien Saucers
+    "HS111",  # Runaway Railway
+    "HS112",  # Millennium Falcon
+    "HS113",  # Rise of Resistance
+    "HS12",   # Rock Coaster
+    "HS15",   # Star Tours
+    "HS20",   # Toy Story Mania!
+    "HS22",   # Tower of Terror
+
+    # ==== Magic Kingdom (MK) ====
+    "MK01",   # Space Mountain
+    "MK05",   # Peter Pan's Flight
+    "MK06",   # Winnie the Pooh
+    "MK13",   # Jungle Cruise
+    "MK141",  # 7 Dwarfs Train
+    "MK142",  # Under the Sea
+    "MK15",   # Magic Carpets
+    "MK16",   # Pirates of Caribbean
+    "MK23",   # Haunted Mansion
+    "MK27",   # Dumbo
+    "MK28",   # it's a small world
+    "MK29",   # Mad Tea Party
+    "MK34",   # Barnstormer
+    "MK39",   # Astro Orbiter
+    "MK43",    # Tom'land Speedway
+
+        # ==== Disney California Adventure (CA) ====
     "CA03",   # Monsters, Inc.
     "CA09",   # Soarin'
     "CA109",  # Radiator Racers
@@ -82,54 +130,7 @@ CODES = [
     "EU07",   # Battle at the Ministry
     "EU09",   # Fyre Drill
     "EU10",   # Dragon Racer's Rally
-    "EU11",   # Hiccup's Wing Gliders
-
-    # ==== Animal Kingdom (AK) ====
-    "AK07",   # Kilimanjaro Safaris
-    "AK11",   # Expedition Everest
-    "AK18",   # DINOSAUR
-    "AK85",   # Na'vi River
-    "AK86",   # Flight of Passage
-
-    # ==== EPCOT (EP) ====
-    "EP02",   # Spaceship Earth
-    "EP04",   # Seas with Nemo
-    "EP07",   # Living w/ Land
-    "EP09",   # Soarin'
-    "EP13",   # Jrny Imagination
-    "EP14",   # Test Track
-    "EP155",  # Frozen Ever After
-    "EP16",   # Msn: SPACE Orange
-    "EP186",  # Remy's Adventure
-    "EP20",   # Gran Fiesta Tour
-
-    # ==== Hollywood Studios (HS) ====
-    "HS103",  # Slinky Dog
-    "HS104",  # Alien Saucers
-    "HS111",  # Runaway Railway
-    "HS112",  # Millennium Falcon
-    "HS113",  # Rise of Resistance
-    "HS12",   # Rock Coaster
-    "HS15",   # Star Tours
-    "HS20",   # Toy Story Mania!
-    "HS22",   # Tower of Terror
-
-    # ==== Magic Kingdom (MK) ====
-    "MK01",   # Space Mountain
-    "MK05",   # Peter Pan's Flight
-    "MK06",   # Winnie the Pooh
-    "MK13",   # Jungle Cruise
-    "MK141",  # 7 Dwarfs Train
-    "MK142",  # Under the Sea
-    "MK15",   # Magic Carpets
-    "MK16",   # Pirates of Caribbean
-    "MK23",   # Haunted Mansion
-    "MK27",   # Dumbo
-    "MK28",   # it's a small world
-    "MK29",   # Mad Tea Party
-    "MK34",   # Barnstormer
-    "MK39",   # Astro Orbiter
-    "MK43"    # Tom'land Speedway
+    "EU11"    # Hiccup's Wing Gliders
 
 ]
 

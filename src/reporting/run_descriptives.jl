@@ -99,7 +99,7 @@ function process_descriptives(attraction_code::String, wait_time_type::String)
 
     # Final combine
     overall_stats = hcat(overall_stats, hour_stats)
-    overall_stats.summary_date = fill(today(), 1)
+    overall_stats.summary_date = fill(TODAY_DATE, 1)
 
     # Write output (append only)
     out_name   = "descriptive_summary_$(upper_code)_$(suffix).csv"

@@ -48,7 +48,7 @@ function main()
 
     # Reorder and rename columns
     df = select(df,
-        :park_day_id        => :id_park_day_id,
+        :park_date        => :id_park_day_id,
         :entity_code        => :id_entity_code,
         :property_code      => :meta_property_code,
         :park_code          => :meta_park_code,

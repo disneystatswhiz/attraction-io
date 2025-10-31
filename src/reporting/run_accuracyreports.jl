@@ -151,7 +151,7 @@ function process_accuracy_report(
 
     # Final combine
     overall_stats = hcat(overall_stats, hour_stats)
-    overall_stats.summary_date = fill(today(), 1)
+    overall_stats.summary_date = fill(TODAY_DATE, 1)
 
     # Write output
     out_name   = "accuracy_summary_$(upper_code)_$(suffix).csv"

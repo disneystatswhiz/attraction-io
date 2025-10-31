@@ -13,8 +13,8 @@ using Dates, CSV, DataFrames, TimeZones
 # if the current time is past 6 AM.
 # ----------------------------------------------------------
 # arg: property::String - The property code (e.g., "WDW", "UOR", "DLR", "USH", "TDR")
-# returns: DataFrame with columns `park_day_id` and `observed_at`
-#          `park_day_id` is the date in YYYY-MM-DD format   
+# returns: DataFrame with columns `park_date` and `observed_at`
+#          `park_date` is the date in YYYY-MM-DD format   
 #          `observed_at` is the DateTime in the property's timezone
 # ----------------------------------------------------------
 function generate_future_forecast_times(attraction::Attraction)::DataFrame
@@ -32,12 +32,12 @@ function generate_future_forecast_times(attraction::Attraction)::DataFrame
 
     # Guard: if start_date ever passes end_date (e.g., Dec 31 edge cases), bail early
     if start_date > end_date
-        return DataFrame(park_day_id = Date[], observed_at = ZonedDateTime[])
+        return DataFrame(park_date = Date[], observed_at = ZonedDateTime[])
     end
 
     # Generate 15-min intervals 06:00 → 03:00 next day
     observed_at = ZonedDateTime[]
-    park_day_id = Date[]
+    park_date = Date[]
 
     for day in start_date:end_date
         base_time  = ZonedDateTime(DateTime(day, Time(6,0)), tz)
@@ -45,12 +45,12 @@ function generate_future_forecast_times(attraction::Attraction)::DataFrame
 
         while base_time <= final_time
             push!(observed_at, base_time)
-            push!(park_day_id, Date(base_time))  # local date
+            push!(park_date, Date(base_time))  # local date
             base_time += Minute(15)              # DST-safe with ZonedDateTime
         end
     end
 
-    return DataFrame(park_day_id = park_day_id, observed_at = observed_at)
+    return DataFrame(park_date = park_date, observed_at = observed_at)
 end
 
 

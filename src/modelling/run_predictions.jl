@@ -65,7 +65,7 @@ end
 function run_entity_forecast_logger(attraction::Attraction)
     entity_code = attraction.code
     model_name = "XGBoost"
-    today_str = string(Dates.today())
+    today_str = string(TODAY_DATE)
 
     forecast_dict = get_forecast_df(entity_code)
 

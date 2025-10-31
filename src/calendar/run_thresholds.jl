@@ -10,7 +10,7 @@ using JSON3, DataFrames, CSV, Statistics, Clustering, Dates
 function generate_thresholds(df::DataFrame)::DataFrame
     cols = [:entity_code, :effective_date] ∪ [Symbol("cl$(i)_max") for i in 1:9]
     out = DataFrame(; (c => Any[] for c in cols)...)
-    today_str = today()
+    today_str = TODAY_DATE
 
     for subdf in groupby(df, :entity_code)
         code = subdf.entity_code[1]

@@ -18,7 +18,7 @@ end
 
 # --------------------------------------------------------------------- #
 # Adds park hours to the DataFrame by joining with a CSV file.
-# The CSV file should contain columns: park_day_id, park_code, park_open, park_close.
+# The CSV file should contain columns: park_date, park_code, park_open, park_close.
 # If the DataFrame already has park_open and park_close columns, they are dropped.
 # Args:
 # - df::DataFrame: The DataFrame to which park hours will be added
@@ -28,9 +28,9 @@ end
 # --------------------------------------------------------------------- #
 function add_park_hours(df::DataFrame, attraction::Attraction)::DataFrame
 
-    # Ensure the DataFrame has a park_day_id column
-    if "park_day_id" ∉ names(df)
-        df.park_day_id = get_park_day_id(df, :observed_at)
+    # Ensure the DataFrame has a park_date column
+    if "park_date" ∉ names(df)
+        df.park_date = get_park_day_id(df, :observed_at)
     end
 
     # Ensure the DataFrame has a park_code column
@@ -48,7 +48,7 @@ function add_park_hours(df::DataFrame, attraction::Attraction)::DataFrame
     park_hours_df.closing_time_with_emh_or_party = parse_zoneddatetimes_simple(park_hours_df.closing_time_with_emh_or_party)
 
     # Join park hours onto the main DataFrame
-    df = leftjoin(df, park_hours_df, on = [:park_day_id, :park_code])
+    df = leftjoin(df, park_hours_df, on = [:park_date, :park_code])
 
     # Compute minutes since park open, if both columns are present
     df.pred_mins_since_park_open = round.(Int, Dates.value.(df.observed_at .- df.opening_time) ./ 60_000)
@@ -71,7 +71,7 @@ end
 
 # --------------------------------------------------------------------- #
 # Adds a dategroupid column to the DataFrame by joining with a CSV file.
-# The CSV file should contain columns: park_day_id, date_group_id.
+# The CSV file should contain columns: park_date, date_group_id.
 # The dategroupid column is renamed to pred_dategroupid.
 # Args:
 # - df::DataFrame: The DataFrame to which dategroupid will be added
@@ -89,14 +89,14 @@ function add_dategroupid(df::DataFrame)::DataFrame
     rename!(dgid_df, :date_group_id => :pred_dategroupid)
     
     # Join and return
-    return leftjoin(df, dgid_df, on = [:park_day_id])
+    return leftjoin(df, dgid_df, on = [:park_date])
 end
 
 
 # --------------------------------------------------------------------- #
 # Adds season column predictors to the DataFrame 
 # by joining with a CSV file.
-# The CSV file should contain columns: park_day_id, season, season_year.
+# The CSV file should contain columns: park_date, season, season_year.
 # The season column is renamed to pred_season and pred_season_year.
 # Args:
 # - df::DataFrame: The DataFrame to which season will be added
@@ -115,7 +115,7 @@ function add_season(df::DataFrame)::DataFrame
     rename!(season_df, :season_year => :pred_season_year)
     
     # Join and return
-    return leftjoin(df, season_df, on = [:park_day_id])
+    return leftjoin(df, season_df, on = [:park_date])
 end
 
 # --------------------------------------------------------------------- #

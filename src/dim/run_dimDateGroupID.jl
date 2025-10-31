@@ -12,23 +12,23 @@ function main()
     df_date = CSV.read(joinpath(LOC_DIM, "dimdate.csv"), DataFrame)
     df_holiday = CSV.read(joinpath(LOC_DIM, "dimholidays.csv"), DataFrame)
 
-    select_date = select(df_date, [:park_day_id, :year, :month, :day, :day_of_week, :day_of_week_ddd, :week_of_year, :month_mmm])
-    df = innerjoin(select_date, df_holiday, on = :park_day_id)
+    select_date = select(df_date, [:park_date, :year, :month, :day, :day_of_week, :day_of_week_ddd, :week_of_year, :month_mmm])
+    df = innerjoin(select_date, df_holiday, on = :park_date)
 
     df.date_group_id .= "...needs assigning..."
     df.is_easter_over .= 0
 
     for i in findall(df.holidaycode .== "GFR")
-        y = year(df[i, :park_day_id])
-        df[i:end, :is_easter_over] .= ifelse.(year.(df[i:end, :park_day_id]) .== y, 1, df[i:end, :is_easter_over])
+        y = year(df[i, :park_date])
+        df[i:end, :is_easter_over] .= ifelse.(year.(df[i:end, :park_date]) .== y, 1, df[i:end, :is_easter_over])
     end
 
     df.easter_prefix .= ""
-    is_mar_apr = (3 .<= month.(df.park_day_id) .<= 4)
+    is_mar_apr = (3 .<= month.(df.park_date) .<= 4)
     df.easter_prefix[is_mar_apr .& (df.is_easter_over .== 0)] .= "Before_Easter_"
     df.easter_prefix[is_mar_apr .& (df.is_easter_over .== 1)] .= "After_Easter_"
 
-    df.week_of_month = floor.(Int, (dayofmonth.(df.park_day_id) .- 1) ./ 7) .+ 1
+    df.week_of_month = floor.(Int, (dayofmonth.(df.park_date) .- 1) ./ 7) .+ 1
     df.week = "week" .* string.(df.week_of_month) .* "_"
     df.week[in.(df.week_of_month, Ref([4, 5]))] .= "week4or5_"
 
@@ -67,7 +67,7 @@ function main()
     # Ensure date_group_id is uppercase
     df.date_group_id .= uppercase.(df.date_group_id)
 
-    output_df = sort(select(df, [:park_day_id, Symbol("date_group_id")]), :park_day_id)
+    output_df = sort(select(df, [:park_date, Symbol("date_group_id")]), :park_date)
     CSV.write(output_file, output_df)
 
     # Send the dimdategroupid dataset to S3

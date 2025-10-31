@@ -19,15 +19,15 @@ function main()
     df.season = fill("", nrow(df))
 
     # --- Priority override: CHRISTMAS PEAK (Dec 27 – Jan 1 inclusive)
-    for (i, date) in enumerate(df.park_day_id)
+    for (i, date) in enumerate(df.park_date)
         if (month(date) == 12 && day(date) ≥ 27) || (month(date) == 1 && day(date) ≤ 1)
             df.season[i] = "CHRISTMAS_PEAK"
         end
     end
 
     # --- Preserve index mapping for carry logic
-    day_index = Dict(date => i for (i, date) in enumerate(df.park_day_id))
-    date_list = df.park_day_id
+    day_index = Dict(date => i for (i, date) in enumerate(df.park_date))
+    date_list = df.park_date
 
     # --- High-priority: Specific holidays with carry logic
     holiday_patterns = [
@@ -70,14 +70,14 @@ function main()
 
     # --- Special Handling: Combined Presidents Day and Mardi Gras week
     combined_label = "PRESIDENTS_DAY_MARDI_GRAS"
-    presidents_dates = Set(df.park_day_id[df.season .== "PRESIDENTS_DAY"])
-    mardi_dates = Set(df.park_day_id[df.season .== "MARDI_GRAS"])
+    presidents_dates = Set(df.park_date[df.season .== "PRESIDENTS_DAY"])
+    mardi_dates = Set(df.park_date[df.season .== "MARDI_GRAS"])
 
     for date in presidents_dates
         window = date - Day(3):date + Day(3)
         if any(in(mardi_dates), window)
             for d in window
-                idx = findfirst(==(d), df.park_day_id)
+                idx = findfirst(==(d), df.park_date)
                 if !isnothing(idx)
                     df.season[idx] = combined_label
                 end
@@ -105,11 +105,11 @@ function main()
         (season in ("CHRISTMAS", "CHRISTMAS_PEAK") && month(date) == 1 ?
             string(season, "_", year(date) - 1) :
             string(season, "_", year(date))
-        ) for (season, date) in zip(df.season, df.park_day_id)
+        ) for (season, date) in zip(df.season, df.park_date)
     ]
 
     # --- Finalize + Save
-    output = select(df, [:park_day_id, :season, :season_year])
+    output = select(df, [:park_date, :season, :season_year])
  
     # --- Distribute to input folders
     CSV.write(season_path, output)

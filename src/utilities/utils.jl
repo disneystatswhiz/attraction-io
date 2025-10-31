@@ -169,8 +169,8 @@ function get_timezone_for_property(property_code::AbstractString)::TimeZone
 end
 
 # --------------------------------------------------------------------- #
-# Generates a park_day_id based on the datetime column.
-# The park_day_id is the date of the observation, adjusted to the previous day
+# Generates a park_date based on the datetime column.
+# The park_date is the date of the observation, adjusted to the previous day
 # if the observation time is before 6 AM.
 # Args:
 # - df::DataFrame: The DataFrame containing the datetime column

@@ -41,7 +41,7 @@ df_parkhours = select(parkhours_df, wanted_cols)
 
 # Rename columns to match expected schema
 rename!(df_parkhours, Dict(
-    :date => :park_day_id,
+    :date => :park_date,
     :park => :park_code
 ))
 
