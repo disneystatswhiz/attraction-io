@@ -2,6 +2,14 @@
 # ------------------------------ Attraction IO Runner --------------------------------- #
 # ===================================================================================== #
 
+# Delete the folders output, input, work and temp before starting
+using FilePathsBase: rm, isdir
+for folder in ["output", "input", "work", "temp"]
+    if isdir(folder)
+        rm(folder; force=true, recursive=true)
+    end
+end
+
 include("../src/main_setup.jl")  # ensures Main.DATA_FACT
 include("../src/main_runner.jl")
 
