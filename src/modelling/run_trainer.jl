@@ -5,11 +5,11 @@
 using Dates, CSV, DataFrames, XGBoost
 using Base.Threads
 using LinearAlgebra
+using FilePathsBase: mkpath          # CHANGED
 
-# Let libraries use all Julia threads
-ENV["OMP_NUM_THREADS"] = string(Threads.nthreads())
-BLAS.set_num_threads(Threads.nthreads())
-# @info "Threading enabled" nthreads=Threads.nthreads()
+# --- Threading (keep aligned with worker pool) ---
+const XGB_THREADS = 1
+BLAS.set_num_threads(1)
 
 # ---------------------------------------------------------
 # Train and optionally score using XGBoost
@@ -18,11 +18,14 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
 
     entity_code = attraction.code
     temp_folder = joinpath(LOC_WORK, entity_code, "wait_times")
+    mkpath(temp_folder)                              # CHANGED
     wait_type_lower = lowercase(wait_type)
 
     # Split into train and score
     df_train = filter(row -> !ismissing(row.target) && -100 ≤ row.target ≤ 7000, df)
-    df_score = filter(row -> ismissing(row.target) && row.meta_observed_at > ZonedDateTime(now(), tz"UTC"), df)
+    df_score = filter(row -> ismissing(row.target), df)   # CHANGED
+
+    # @info "trainer" code=entity_code wt=wait_type n_train=nrow(df_train) n_score=nrow(df_score) nthread=XGB_THREADS  # optional
 
     if isempty(df_train)
         return nothing
@@ -34,13 +37,13 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
 
     X = Matrix{Float32}(df_train[:, predictors])
     y = Vector{Float32}(df_train.target)
-
     dtrain = isnothing(w) ? DMatrix(X, label=y) : DMatrix(X, label=y, weight=w)
 
     # GPU setting (optional — assume false unless overridden in future)
     use_gpu = false
+
     booster = xgboost(
-        dtrain;
+        dtrain;                                 # ← semicolon means keywords follow
         num_round = 2000,
         eta = 0.1,
         max_depth = 6,
@@ -48,7 +51,7 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
         min_child_weight = 10,
         objective = "reg:absoluteerror",
         tree_method = use_gpu ? "gpu_hist" : "hist",
-        nthread = Threads.nthreads(),      # ← enable multi-threaded training
+        nthread = XGB_THREADS,                  # ← was Threads.nthreads(); keep aligned to pool/env
         verbosity = 0,
         watchlist = ()
     )
@@ -60,7 +63,7 @@ function train_model(df::DataFrame, attraction::Attraction, wait_type::String)::
     imp_path = joinpath(temp_folder, "feature_importance_$(wait_type_lower).csv")
     CSV.write(imp_path, importance_df)
 
-    # Score future rows
+    # Score rows with missing target
     if !isempty(df_score)
         X_score = Matrix{Float32}(df_score[:, predictors])
         df_score.predicted_wait_time = predict(booster, DMatrix(X_score))
